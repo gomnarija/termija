@@ -5,6 +5,7 @@
 #include <utility>
 #include <algorithm>
 #include <sstream>
+#include <iostream>
 
 /*
 
@@ -29,6 +30,111 @@ std::unique_ptr<RopeNode>                       _merge(std::vector<std::unique_p
 RopeNode::RopeNode()
 : weight{0}, text{nullptr}, left{nullptr}, right{nullptr}
 {}
+
+
+RopeIteratorBFS::RopeIteratorBFS(RopeNode *rope, size_t start){
+    if(rope == nullptr){
+        //TODO:error
+        return;
+    }
+
+    current = rope;
+    if(current->left != nullptr)
+        nodeQueue.push(current->left.get());
+    if(current->right != nullptr)
+        nodeQueue.push(current->right.get());
+    //go to start
+    while(start-- > 0){
+        if(hasNext())
+            next();
+        else{
+            //TODO:error
+            current = nullptr;
+            return;
+        }
+    }
+}
+RopeNode* RopeIteratorBFS::next(){
+    if(!hasNext()){
+        //TODO:error
+        return nullptr;
+    }
+
+    current = nodeQueue.front();
+    if(current->left != nullptr)
+        nodeQueue.push(current->left.get());
+    if(current->right != nullptr)
+        nodeQueue.push(current->right.get());
+    nodeQueue.pop();
+
+    return current;
+}
+bool RopeIteratorBFS::hasNext(){
+    return !nodeQueue.empty();
+}
+RopeNode* RopeIteratorBFS::pop(){
+    if(!hasNext()){
+        RopeNode *prev = current;
+        current = nullptr;
+        return prev;
+    }
+
+    RopeNode *prev = current;
+    next();
+    return prev;
+}
+
+RopeLeafIterator::RopeLeafIterator(RopeNode *rope, size_t start){
+    if(rope == nullptr){
+        //TODO:error
+        return;
+    }
+    //find left-most leaf
+    current = rope_left_most_node_trace(*rope, &nodeStack);
+    //go to start
+    while(start-- > 0){
+        if(hasNext())
+            next();
+        else{
+            //TODO:error
+            current = nullptr;
+            return;
+        }
+    }
+}
+RopeNode* RopeLeafIterator::next(){
+    if(!hasNext()){
+        //TODO:error
+        return nullptr;
+    }
+
+    RopeNode *parent = nodeStack.top();
+    nodeStack.pop();
+    current = rope_left_most_node_trace(*(parent->right), &nodeStack);
+    return current;
+}
+bool RopeLeafIterator::hasNext(){
+    bool has_right_child = false;
+    RopeNode *parent;
+    while(!nodeStack.empty() && !has_right_child){
+        parent = nodeStack.top();
+        nodeStack.pop();
+        has_right_child = parent->right != nullptr;
+    }
+    if(has_right_child)
+        nodeStack.push(parent);
+    return has_right_child;
+}
+RopeNode* RopeLeafIterator::pop(){
+    if(!hasNext()){
+        RopeNode *prev = current;
+        current = nullptr;
+        return prev;
+    }
+    RopeNode *prev = current;
+    next();
+    return prev;
+}
 
 /*
     creates node with the given text
@@ -176,7 +282,7 @@ void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prop
         //TODO:error
         return;
     }
-    if(index < 0 || index >= rope->weight){
+    if(index >= rope->weight){
         //TODO:error
         return;
     }
@@ -201,8 +307,7 @@ void rope_delete_at(RopeNode *rope, size_t index, size_t length){
         //TODO:error
         return;
     }
-    if(index < 0 || 
-        length < 0 ||
+    if(length < 0 ||
          index+length >= rope->weight){
         //TODO:error
         return;
@@ -238,7 +343,7 @@ size_t rope_weight_measure(const RopeNode &rope){
 size_t rope_weight_measure_set(RopeNode *rope){
     if(rope==nullptr){
         //TODO:error
-        return -1;
+        return 0;
     }
     //leaf, measure it's weight
     if(rope->left == nullptr && rope->right == nullptr){
@@ -362,8 +467,7 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
         return;
     }
     size_t length = strlen(node->text.get());
-    if(index < 0 ||
-        index >= length){
+    if(index >= length){
         //TODO:error
         return;
     }
@@ -389,10 +493,6 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
 */
 std::unique_ptr<RopeNode> rope_split_at(RopeNode *rope,size_t index){
     if(rope == nullptr){
-        //TODO:error
-        return nullptr;
-    }
-    else if(index < 0){
         //TODO:error
         return nullptr;
     }
@@ -429,10 +529,6 @@ std::unique_ptr<RopeNode> rope_split_at(RopeNode *rope,size_t index){
             on error returns null
 */
 RopeNode* rope_node_at_index_trace(RopeNode &rope,size_t index, std::stack<RopeNode*> *nodeStack, size_t *local_index){
-   if(index < 0){
-        //TODO: error
-        return nullptr;
-    }
     //leaf
     if(rope.left == nullptr && rope.right == nullptr){
         if(index+1 > rope.weight){
@@ -457,10 +553,6 @@ RopeNode* rope_node_at_index_trace(RopeNode &rope,size_t index, std::stack<RopeN
             on error returns null
 */
 RopeNode* rope_node_at_index(RopeNode &rope,size_t index, size_t *local_index){
-    if(index < 0){
-        //TODO: error
-        return nullptr;
-    }
     //leaf
     if(rope.left == nullptr && rope.right == nullptr){
         if(index+1 > rope.weight){

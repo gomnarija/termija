@@ -15,7 +15,7 @@ const size_t                MAX_WEIGHT = 512;
 
 
 
-struct RopeNode{
+struct RopeNode final{
     std::bitset<7>                              flags;
     std::unique_ptr<char []>                    text;
     std::size_t                                 weight;
@@ -27,6 +27,44 @@ struct RopeNode{
 
     RopeNode(const RopeNode&) = delete;
     RopeNode& operator=(const RopeNode&) = delete;
+};
+
+
+class RopeIterator{
+protected:
+    RopeNode                *current;
+    RopeIterator() 
+            : current{nullptr}{};
+
+public:
+    virtual RopeNode* get() const {return current;}
+    virtual RopeNode* next() = 0;
+    virtual bool      hasNext() = 0;
+    virtual RopeNode* pop() = 0;
+};
+
+class RopeIteratorBFS   :   public RopeIterator{
+private:
+    std::queue<RopeNode*>   nodeQueue;
+
+public:
+    RopeIteratorBFS(RopeNode *rope, size_t start = 0);
+
+    RopeNode* next() override final;
+    bool      hasNext() override final;
+    RopeNode* pop() override final;
+};
+
+class RopeLeafIterator  :   public RopeIterator{
+private:
+    std::stack<RopeNode*>   nodeStack;
+
+public:
+    RopeLeafIterator(RopeNode *rope, size_t start = 0);
+
+    RopeNode* next() override final;
+    bool      hasNext() override final;
+    RopeNode* pop() override final;
 };
 
 

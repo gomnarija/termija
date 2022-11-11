@@ -140,6 +140,9 @@ RopeNode* RopeLeafIterator::pop(){
     creates node with the given text
 */
 std::unique_ptr<RopeNode> rope_create_node(const char* text){
+    if(text == nullptr){
+        return nullptr;
+    }
     std::unique_ptr<RopeNode> node = std::make_unique<RopeNode>();
     //add text
     node->text = std::make_unique<char[]>(strlen(text) + 1);
@@ -147,7 +150,7 @@ std::unique_ptr<RopeNode> rope_create_node(const char* text){
     //cut while too long
     RopeNode *n  = node.get();
     while(n->weight > MAX_WEIGHT){
-        _split_node(n, n->weight / 2, n->left, n->right);
+        _split_node(n, std::max((n->weight / 2), n->weight-MAX_WEIGHT), n->left, n->right);
         n = n->left.get();
     }
 
@@ -158,6 +161,9 @@ std::unique_ptr<RopeNode> rope_create_node(const char* text){
     creates rope with the given text
 */
 std::unique_ptr<RopeNode> rope_create(const char* text){
+    if(text == nullptr){
+        return nullptr;
+    }
     //create new rope, and it's left node
     std::unique_ptr<RopeNode> rope = std::make_unique<RopeNode>();
     rope->left = std::make_unique<RopeNode>();
@@ -168,7 +174,7 @@ std::unique_ptr<RopeNode> rope_create(const char* text){
 
     //cut while too long
     while(n->weight > MAX_WEIGHT){
-        _split_node(n, n->weight / 2, n->left, n->right);
+        _split_node(n, std::max((n->weight / 2), n->weight-MAX_WEIGHT), n->left, n->right);
         n = n->left.get();
     }
 
@@ -221,6 +227,10 @@ void rope_prepend(RopeNode *rope, const char *text){
         consumes the ownership of the given rope
 */
 void rope_prepend(RopeNode *rope,std::unique_ptr<RopeNode> prope){
+    if(prope == nullptr){
+        //TODO:error
+        return;
+    }
     std::stack<RopeNode*> nodeStack;
     size_t prope_weight = prope->weight;
     //get left-most leaf
@@ -249,6 +259,10 @@ void rope_append(RopeNode *rope, const char *text){
 
 */
 void rope_append(RopeNode *rope,std::unique_ptr<RopeNode> prope){
+    if(prope == nullptr){
+        //TODO:error
+        return;
+    }
     std::stack<RopeNode*> nodeStack;
     size_t prope_weight = prope->weight;
     //get right-most leaf
@@ -278,7 +292,8 @@ void rope_insert_at(RopeNode *rope, size_t index, const char *text){
             consumes the ownership of the given rope
 */
 void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prope){
-    if(rope == nullptr){
+    if(rope == nullptr &&
+        prope == nullptr){
         //TODO:error
         return;
     }
@@ -307,7 +322,7 @@ void rope_delete_at(RopeNode *rope, size_t index, size_t length){
         //TODO:error
         return;
     }
-    if(length < 0 ||
+    if(length == 0 ||
          index+length >= rope->weight){
         //TODO:error
         return;

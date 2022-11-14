@@ -11,7 +11,7 @@
 
 
 
-const size_t                MAX_WEIGHT = 512;
+inline const size_t                MAX_WEIGHT = 512;
 
 
 
@@ -68,6 +68,7 @@ public:
 };
 
 
+std::unique_ptr<RopeNode>       rope_create_empty();
 std::unique_ptr<RopeNode>       rope_create_node(const char*);
 std::unique_ptr<RopeNode>       rope_create(const char*);
 void                            rope_destroy(std::unique_ptr<RopeNode>);

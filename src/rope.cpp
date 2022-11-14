@@ -137,6 +137,16 @@ RopeNode* RopeLeafIterator::pop(){
 }
 
 /*
+    creates empty rope
+*/
+std::unique_ptr<RopeNode> rope_create_empty(){
+    std::unique_ptr<RopeNode> node = std::make_unique<RopeNode>();
+    node->weight = 0;
+    
+    return std::move(node);
+}
+
+/*
     creates node with the given text
 */
 std::unique_ptr<RopeNode> rope_create_node(const char* text){

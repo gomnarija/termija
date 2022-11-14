@@ -1,4 +1,6 @@
 #include "termija.h"
+#include <plog/Log.h>
+
 
 #include <cstring>
 
@@ -33,7 +35,7 @@ Pane* tra_split_pane_vertically(Pane &pane, size_t width){
     Termija& termija = Termija::instance();
 
     if(pane.width <= width){
-        //TODO:error
+        PLOG_ERROR << "given width is bigger than the pane width, aborted";
         return nullptr;
     }
     //rescale given pane
@@ -59,7 +61,7 @@ Pane* tra_split_pane_horizontally(Pane &pane, size_t height){
     Termija& termija = Termija::instance();
 
     if(pane.height <= height){
-        //TODO:error
+        PLOG_ERROR << "given height is bigger than the pane height, aborted";
         return nullptr;
     }
     //rescale given pane
@@ -78,7 +80,7 @@ Pane* tra_split_pane_horizontally(Pane &pane, size_t height){
 //TODO
 RopeNode* tra_insertText(Pane& pane,const char* text,size_t index){
     if(text == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given text is NULL, aborted";
         return nullptr;
     }
     return nullptr;

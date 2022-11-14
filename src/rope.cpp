@@ -1,4 +1,6 @@
 #include "rope.h"
+#include <plog/Log.h>
+
 
 #include <memory>
 #include <cstring>
@@ -34,7 +36,7 @@ RopeNode::RopeNode()
 
 RopeIteratorBFS::RopeIteratorBFS(RopeNode *rope, size_t start){
     if(rope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
 
@@ -48,7 +50,7 @@ RopeIteratorBFS::RopeIteratorBFS(RopeNode *rope, size_t start){
         if(hasNext())
             next();
         else{
-            //TODO:error
+            PLOG_ERROR << "given start point is bigger than rope size, aborted.";
             current = nullptr;
             return;
         }
@@ -56,7 +58,7 @@ RopeIteratorBFS::RopeIteratorBFS(RopeNode *rope, size_t start){
 }
 RopeNode* RopeIteratorBFS::next(){
     if(!hasNext()){
-        //TODO:error
+        PLOG_WARNING << "there is no next element, aborted.";
         return nullptr;
     }
 
@@ -86,7 +88,7 @@ RopeNode* RopeIteratorBFS::pop(){
 
 RopeLeafIterator::RopeLeafIterator(RopeNode *rope, size_t start){
     if(rope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
     //find left-most leaf
@@ -96,7 +98,7 @@ RopeLeafIterator::RopeLeafIterator(RopeNode *rope, size_t start){
         if(hasNext())
             next();
         else{
-            //TODO:error
+            PLOG_ERROR << "given start point is bigger than number of leafs, aborted.";
             current = nullptr;
             return;
         }
@@ -104,7 +106,7 @@ RopeLeafIterator::RopeLeafIterator(RopeNode *rope, size_t start){
 }
 RopeNode* RopeLeafIterator::next(){
     if(!hasNext()){
-        //TODO:error
+        PLOG_WARNING << "there is no next element, aborted.";
         return nullptr;
     }
 
@@ -151,6 +153,7 @@ std::unique_ptr<RopeNode> rope_create_empty(){
 */
 std::unique_ptr<RopeNode> rope_create_node(const char* text){
     if(text == nullptr){
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return nullptr;
     }
     std::unique_ptr<RopeNode> node = std::make_unique<RopeNode>();
@@ -172,6 +175,7 @@ std::unique_ptr<RopeNode> rope_create_node(const char* text){
 */
 std::unique_ptr<RopeNode> rope_create(const char* text){
     if(text == nullptr){
+        PLOG_ERROR << "given text is NULL, aborted.";
         return nullptr;
     }
     //create new rope, and it's left node
@@ -195,6 +199,11 @@ std::unique_ptr<RopeNode> rope_create(const char* text){
     destroys the given rope
 */
 void rope_destroy(std::unique_ptr<RopeNode> rope){
+    if(rope == nullptr){
+        PLOG_ERROR << "given rope is NULL, aborted.";
+        return;
+    }
+
     std::stack<RopeNode *> nodeStack;
     RopeNode *n, *p;
     n = rope_left_most_node_trace(*rope, &nodeStack);
@@ -238,7 +247,7 @@ void rope_prepend(RopeNode *rope, const char *text){
 */
 void rope_prepend(RopeNode *rope,std::unique_ptr<RopeNode> prope){
     if(prope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
     std::stack<RopeNode*> nodeStack;
@@ -269,8 +278,8 @@ void rope_append(RopeNode *rope, const char *text){
 
 */
 void rope_append(RopeNode *rope,std::unique_ptr<RopeNode> prope){
-    if(prope == nullptr){
-        //TODO:error
+    if(prope == nullptr || rope == nullptr){
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
     std::stack<RopeNode*> nodeStack;
@@ -304,11 +313,11 @@ void rope_insert_at(RopeNode *rope, size_t index, const char *text){
 void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prope){
     if(rope == nullptr &&
         prope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
     if(index >= rope->weight){
-        //TODO:error
+        PLOG_ERROR << "given index is bigger than rope weight, aborted. index: " << index;
         return;
     }
 
@@ -329,12 +338,12 @@ void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prop
 */
 void rope_delete_at(RopeNode *rope, size_t index, size_t length){
     if(rope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
     if(length == 0 ||
          index+length >= rope->weight){
-        //TODO:error
+        PLOG_ERROR << "index/length combination invalid, aborted." << "index: " << index << " length: " << length;
         return;
     }
     std::unique_ptr<RopeNode> deleted_rope = rope_split_at(rope, index);
@@ -367,7 +376,7 @@ size_t rope_weight_measure(const RopeNode &rope){
 */
 size_t rope_weight_measure_set(RopeNode *rope){
     if(rope==nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return 0;
     }
     //leaf, measure it's weight
@@ -413,7 +422,7 @@ bool rope_is_balanced(const RopeNode &rope){
 */
 void _harvest(std::unique_ptr<RopeNode> rope, std::vector<std::unique_ptr<RopeNode>> *nodeVector){
     if(rope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
     //if leaf, collect
@@ -471,7 +480,7 @@ std::unique_ptr<RopeNode> _merge(std::vector<std::unique_ptr<RopeNode>> *nodeVec
 */
 std::unique_ptr<RopeNode> rope_rebalance(std::unique_ptr<RopeNode> rope){
     if(rope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return nullptr;
     }
     std::vector<std::unique_ptr<RopeNode>> nodeVector;
@@ -488,12 +497,12 @@ std::unique_ptr<RopeNode> rope_rebalance(std::unique_ptr<RopeNode> rope){
 void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left,  std::unique_ptr<RopeNode> &right){
     if(node == nullptr || node->text == nullptr ||
         !(node->left == nullptr && node->right == nullptr)){
-                    //TODO:error
+        PLOG_ERROR << "given node not a leaf, aborted.";
         return;
     }
     size_t length = strlen(node->text.get());
     if(index >= length){
-        //TODO:error
+        PLOG_ERROR << "index bigger than length, aborted. index : " << index;
         return;
     }
     left = std::make_unique<RopeNode>();
@@ -518,7 +527,7 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
 */
 std::unique_ptr<RopeNode> rope_split_at(RopeNode *rope,size_t index){
     if(rope == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given rope is NULL, aborted.";
         return nullptr;
     }
      //split node; weight = index;delete text;new rope is split_right
@@ -557,7 +566,7 @@ RopeNode* rope_node_at_index_trace(RopeNode &rope,size_t index, std::stack<RopeN
     //leaf
     if(rope.left == nullptr && rope.right == nullptr){
         if(index+1 > rope.weight){
-            //TODO:error
+            PLOG_ERROR << "index bigger than weight, aborted. index : " << index;
             return nullptr;
         }
         if(local_index != nullptr)
@@ -581,7 +590,7 @@ RopeNode* rope_node_at_index(RopeNode &rope,size_t index, size_t *local_index){
     //leaf
     if(rope.left == nullptr && rope.right == nullptr){
         if(index+1 > rope.weight){
-            //TODO:error
+            PLOG_ERROR << "index bigger than weight, aborted. index : " << index;
             return nullptr;
         }
         if(local_index != nullptr)
@@ -634,7 +643,7 @@ std::string rope_dot(const RopeNode &rope){
     while(!nodeQueue.empty()){
         c = nodeQueue.front();
         if(c == nullptr){
-            //TODO:error
+            PLOG_ERROR << "current node is NULL, skipping";
             continue;
         }
         if(c->left != nullptr)

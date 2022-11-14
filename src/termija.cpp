@@ -6,6 +6,8 @@
 
 #include "raylib.h"
 #include "termija.h"
+#include <plog/Log.h>
+#include <plog/Initializers/RollingFileInitializer.h>
 
 namespace termija{
 
@@ -34,6 +36,9 @@ void tra_init_termija(int screenWidth,int screenHeight,const char * windowTitle)
 
 void tra_init_termija(int screenWidth,int screenHeight,const char * windowTitle, int paneMargin){
     Termija& termija = tra_get_instance();
+
+    //plog
+    plog::init(plog::debug, "termija.log");
 
     //raylib
     InitWindow(screenWidth, screenHeight, windowTitle);
@@ -112,7 +117,7 @@ void tra_remove_pane(Pane *pane){
     Termija& termija = Termija::instance();
 
     if(pane == nullptr){
-        //TODO:error
+        PLOG_ERROR << "given pane is NULL, aborted.";
         return;
     }
 
@@ -140,7 +145,7 @@ void tra_remove_pane(Pane *pane){
     }
 
     if(!pane_removed){
-        //TODO:error
+        PLOG_WARNING << "no panes match the given pointer, none were removed.";
     }
 }
 

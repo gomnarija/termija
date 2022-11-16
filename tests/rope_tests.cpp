@@ -399,6 +399,27 @@ TEST_CASE( "Delete at index inside of rope", "[rope_delete_at]" ) {
         }
         REQUIRE( rope_text == "some_text" );
     }
+    SECTION("deletes the rope at the given index, additional weight"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_add_additional_weight_at(rope.get(), 1, 10, 10);
+        rope_delete_at(rope.get(), 4, 10);
+
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 19 );
+
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "text" );
+
+    }
 }
 
 TEST_CASE( "Measure rope weight", "[rope_weight_measure]" ) {
@@ -488,4 +509,120 @@ TEST_CASE( "Rope splited at index", "[rope_split_at]" ) {
         REQUIRE( new_rope_text == text.substr(size - new_size  - 1, new_size) );
 
     }
+
+    SECTION("splits the rope at the given index, cuts on pre weight"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_add_additional_weight_at(rope.get(), 1, 10, 10);
+        std::unique_ptr<RopeNode> new_rope = rope_split_at(rope.get(), 5);
+
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( new_rope != nullptr );
+        REQUIRE( rope->weight == 6 );
+        REQUIRE( new_rope->weight == 23);
+
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "" );
+
+        std::string new_rope_text;
+        RopeLeafIterator litnrope(new_rope.get());
+
+        while((c = litnrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            new_rope_text += c->text.get();
+        }
+        REQUIRE( new_rope_text == "some_text" );
+
+    }
+    SECTION("splits the rope at the given index"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_add_additional_weight_at(rope.get(), 1, 10, 10);
+        std::unique_ptr<RopeNode> new_rope = rope_split_at(rope.get(), 10);
+
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( new_rope != nullptr );
+        REQUIRE( rope->weight == 11 );
+        REQUIRE( new_rope->weight == 18);
+
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "s" );
+
+        std::string new_rope_text;
+        RopeLeafIterator litnrope(new_rope.get());
+
+        while((c = litnrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            new_rope_text += c->text.get();
+        }
+        REQUIRE( new_rope_text == "ome_text" );
+
+    }
+
+    
+    SECTION("splits the rope at the given index, cuts on post weight"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_add_additional_weight_at(rope.get(), 1, 10, 10);
+        std::unique_ptr<RopeNode> new_rope = rope_split_at(rope.get(), 25);
+
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( new_rope != nullptr );
+        REQUIRE( rope->weight == 26 );
+        REQUIRE( new_rope->weight == 3);
+
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "some_text" );
+
+        std::string new_rope_text;
+        RopeLeafIterator litnrope(new_rope.get());
+
+        while((c = litnrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            new_rope_text += c->text.get();
+        }
+        REQUIRE( new_rope_text == "" );
+
+    }
+}
+
+
+TEST_CASE( "Rope flags additional weight", "[rope_add_additional_weight_at]" ) {
+
+    SECTION("adds pre/post weight to node"){
+        const size_t size = MAX_WEIGHT * 8;
+        const size_t new_size = size/3;
+        const std::string text(size, 'm');
+        std::unique_ptr<RopeNode> rope = rope_create(text.c_str());
+    
+        rope_add_additional_weight_at(rope.get(), rope->weight - 1, MAX_WEIGHT, MAX_WEIGHT);
+
+        REQUIRE( rope_weight_measure(*rope) == size + (2*MAX_WEIGHT));
+
+    }
+
 }

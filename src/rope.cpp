@@ -28,10 +28,15 @@ std::vector<std::unique_ptr<RopeNode>>          _harvest(std::unique_ptr<RopeNod
 std::unique_ptr<RopeNode>                       _merge(std::vector<std::unique_ptr<RopeNode>>*, size_t, size_t);
 
 
+RopeFlags::RopeFlags()
+: preWeight{0}, postWeight{0}, effects{0}
+{}
 
 RopeNode::RopeNode()
 : weight{0}, text{nullptr}, left{nullptr}, right{nullptr}
-{}
+{
+    this->flags = std::make_unique<RopeFlags>();
+}
 
 
 RopeIteratorBFS::RopeIteratorBFS(RopeNode *rope, size_t start){
@@ -143,7 +148,6 @@ RopeNode* RopeLeafIterator::pop(){
 */
 std::unique_ptr<RopeNode> rope_create_empty(){
     std::unique_ptr<RopeNode> node = std::make_unique<RopeNode>();
-    node->weight = 0;
     
     return std::move(node);
 }
@@ -356,8 +360,10 @@ void rope_delete_at(RopeNode *rope, size_t index, size_t length){
 */
 size_t rope_weight_measure(const RopeNode &rope){
     //leaf, measure it's weight
-    if(rope.left == nullptr && rope.right == nullptr)
-        return rope.text != nullptr ? strlen(rope.text.get()):0;
+    if(rope.left == nullptr && rope.right == nullptr){
+        size_t length = rope.text != nullptr ? strlen(rope.text.get()):0;
+        return length + rope.flags->preWeight + rope.flags->postWeight;
+    }
     //weight = weight(left) + weight(rightside)
     RopeNode *curr_right = rope.left->right.get();
     size_t right_side = 0;
@@ -381,7 +387,8 @@ size_t rope_weight_measure_set(RopeNode *rope){
     }
     //leaf, measure it's weight
     if(rope->left == nullptr && rope->right == nullptr){
-        rope->weight = rope->text != nullptr ? strlen(rope->text.get()):0;
+        size_t length = rope->text != nullptr ? strlen(rope->text.get()):0;
+        rope->weight = length + rope->flags->preWeight + rope->flags->postWeight;
         return rope->weight;
     }
     //weight = weight(left) + weight(rightside)
@@ -501,20 +508,71 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
         return;
     }
     size_t length = strlen(node->text.get());
-    if(index >= length){
+    size_t preWeight = node->flags->preWeight;
+    size_t postWeight = node->flags->postWeight;
+    if(index >= length + preWeight + postWeight){
         PLOG_ERROR << "index bigger than length, aborted. index : " << index;
         return;
     }
+    //splits at pre/post weight
+    bool preSplit = index < preWeight;
+    bool postSplit = index > length + preWeight;
+    //new split nodes
     left = std::make_unique<RopeNode>();
     right = std::make_unique<RopeNode>();
+
     //left, up to index, including index
-    left->weight = index+1;                   
-    left->text = std::make_unique<char []>(left->weight+1);
-    snprintf(left->text.get(), left->weight + 1, "%s", node->text.get());//The generated string has a length of at most n-1    
-    //right, from text index                            //leaving space for the additional terminating null character.
-    right->weight = length - (index+1);
-    right->text = std::make_unique<char []>(right->weight+1);
-    snprintf(right->text.get(), right->weight + 1, "%s", node->text.get() + (index+1));
+    left->weight = index+1;            
+    if(!preSplit && !postSplit){
+        //pre weight goes to the left
+        left->flags->preWeight = preWeight;
+        //split text
+        left->text = std::make_unique<char []>(left->weight+1);
+        snprintf(left->text.get(), (left->weight - left->flags->preWeight)  + 1, "%s", node->text.get());//The generated string has a length of at most n-1    
+    }                                                                           //leaving space for the additional terminating null character.
+    else{
+        if(preSplit){
+            //weight = preWeight
+            left->flags->preWeight = left->weight;
+            //empty string
+            left->text = std::make_unique<char []>(1);
+            snprintf(left->text.get(), 1, "");
+        }else if(postSplit){
+            //preWeight = preWeight, postWeight = weight - preWeight - length
+            left->flags->preWeight = preWeight;
+            left->flags->postWeight = left->weight - left->flags->preWeight - length;
+            //copy node text
+            left->text = std::make_unique<char []>(length + 1);
+            snprintf(left->text.get(), length + 1, "%s", node->text.get());
+        }
+    }                                               
+
+    //right, from index                            
+    right->weight = (length + preWeight + postWeight) - (index+1);
+    if(!preSplit && !postSplit){
+        //post weight goes to the right
+        right->flags->postWeight = postWeight;
+        //split text
+        right->text = std::make_unique<char []>(right->weight+1);
+        snprintf(right->text.get(), (right->weight - right->flags->postWeight) + 1, "%s", node->text.get() + ((index - preWeight)+1));
+    }else{
+        if(postSplit){
+            //weight = preWeight
+            right->flags->postWeight = right->weight;
+            //empty string
+            right->text = std::make_unique<char []>(1);
+            snprintf(right->text.get(), 1, "");
+        }else if(preSplit){
+            //preWeight = preWeight, postWeight = postWeight
+            right->flags->postWeight = postWeight;
+            right->flags->preWeight = right->weight - length - right->flags->postWeight;
+            //copy node text
+            right->text = std::make_unique<char []>(length + 1);
+            snprintf(right->text.get(), length + 1, "%s", node->text.get());
+        }
+
+    }
+
     //delete text from parent; set weight to left childs weight; connect left child
     node->text.release();
     node->weight = left->weight;
@@ -628,6 +686,58 @@ RopeNode* rope_left_most_node(RopeNode &rope){
         return &rope;
     else
         return rope_left_most_node(*(rope.left));
+}
+
+/*
+    set pre/post weight to node at given index; measure sets rope weight
+*/
+void rope_add_additional_weight_at(RopeNode *rope, size_t index, uint16_t preWeight, uint16_t postWeight){
+    if(rope == nullptr){
+        PLOG_ERROR << "rope is NULL, aborted.";
+        return;
+    }
+
+    RopeNode *node = rope_node_at_index(*rope, index, NULL);
+
+    node->flags->preWeight = preWeight;
+    node->flags->postWeight = postWeight;
+    rope_weight_measure_set(rope);
+}
+
+/*
+    moves weight from post to pre, if possible
+*/
+void rope_pre_weight_rebalance(RopeFlags *flags, uint16_t weight){
+    if(flags == nullptr){
+        PLOG_ERROR << "flags is NULL, aborted.";
+        return;
+    }
+
+    if(weight > flags->postWeight){
+        PLOG_ERROR << "not enough weight in postWeight, aborted.";
+        return;
+    }
+
+    flags->preWeight += weight;
+    flags->postWeight -= weight;
+}
+
+/*
+    moves weight from pre to post, if possible
+*/
+void rope_post_weight_rebalance(RopeFlags *flags, uint16_t weight){
+    if(flags == nullptr){
+        PLOG_ERROR << "flags is NULL, aborted.";
+        return;
+    }
+
+    if(weight > flags->preWeight){
+        PLOG_WARNING << "not enough weight in preWeight, aborted.";
+        return;
+    }
+
+    flags->postWeight += weight;
+    flags->preWeight -= weight;
 }
 
 /*

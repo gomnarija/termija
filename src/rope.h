@@ -14,11 +14,25 @@
 inline const size_t                MAX_WEIGHT = 512;
 
 
+struct RopeNode;
+
+struct RopeFlags final{
+    uint16_t                    preWeight;
+    uint16_t                    postWeight;
+    std::bitset<8>              effects;
+
+
+    RopeFlags();
+
+    RopeFlags(const RopeFlags&) = delete;
+    RopeFlags& operator=(const RopeFlags&) = delete;
+};
+
 
 struct RopeNode final{
-    std::bitset<7>                              flags;
     std::unique_ptr<char []>                    text;
     std::size_t                                 weight;
+    std::unique_ptr<RopeFlags>                  flags;
 
     std::unique_ptr<RopeNode>                   left;
     std::unique_ptr<RopeNode>                   right;
@@ -91,6 +105,9 @@ RopeNode*                       rope_node_at_index_trace(RopeNode&,size_t,std::s
 RopeNode*                       rope_node_at_index(RopeNode&,size_t,size_t*);
 RopeNode*                       rope_left_most_node_trace(RopeNode&,std::stack<RopeNode*>*);
 RopeNode*                       rope_left_most_node(RopeNode&);
+void                            rope_add_additional_weight_at(RopeNode *, size_t, uint16_t, uint16_t);
+void                            rope_pre_weight_rebalance(RopeFlags *, uint16_t );
+void                            rope_post_weight_rebalance(RopeFlags *, uint16_t );
 std::string                     rope_dot(const RopeNode&);
 
 

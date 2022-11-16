@@ -26,7 +26,7 @@ Pane::Pane(size_t topX, size_t topY, size_t width, size_t height) :
 }
 
 Pane* tra_split_pane_vertically(Pane &pane){
-    return tra_split_pane_vertically(pane, pane.width/2);
+    return tra_split_pane_vertically(pane, (pane.width /2));
 }
 /*
     splits the given pane vertically, shortening it's width and creating new pane 
@@ -39,20 +39,20 @@ Pane* tra_split_pane_vertically(Pane &pane, size_t width){
         return nullptr;
     }
     //rescale given pane
-    pane.width -= width - termija.paneMargin;
+    pane.width -= width + (termija.paneMargin/2);
     //create new pane
-    Pane* new_pane = tra_add_pane(pane.width + termija.paneMargin + 1, pane.topY, width - termija.paneMargin, pane.height);
+    Pane* new_pane = tra_add_pane(pane.topX + pane.width + termija.paneMargin, pane.topY, width - (termija.paneMargin/2), pane.height);
     //connect panes
-    new_pane->left = pane.left;
-    new_pane->right = &pane;
+    new_pane->left = &pane;
+    new_pane->right = pane.right;
     new_pane->top = pane.top;
     new_pane->bottom = pane.bottom;
-    pane.left = new_pane;
+    pane.right = new_pane;
     return new_pane;
 }
 
 Pane* tra_split_pane_horizontally(Pane &pane){
-    return tra_split_pane_horizontally(pane, pane.height/2);
+    return tra_split_pane_horizontally(pane,(pane.height / 2));
 }
 /*
     splits the given pane horizontally, shortening it't height and creating new pane 
@@ -65,9 +65,9 @@ Pane* tra_split_pane_horizontally(Pane &pane, size_t height){
         return nullptr;
     }
     //rescale given pane
-    pane.height -= height - termija.paneMargin;
+    pane.height -= height + (termija.paneMargin/2);
     //create new pane
-    Pane* new_pane = tra_add_pane(pane.topX, pane.height + termija.paneMargin + 1, pane.width, height - termija.paneMargin);
+    Pane* new_pane = tra_add_pane(pane.topX,pane.topY +  pane.height + termija.paneMargin, pane.width, height - (termija.paneMargin/2));
     //connect panes
     new_pane->left = pane.left;
     new_pane->right = pane.right;
@@ -75,6 +75,32 @@ Pane* tra_split_pane_horizontally(Pane &pane, size_t height){
     new_pane->bottom = pane.bottom;
     pane.bottom = new_pane;
     return new_pane;
+}
+
+/*
+    removes second pane, changing size of the first one;
+        panes must be neighbours
+*/
+Pane* tra_merge_panes(Pane &pane, Pane &toMerge){
+    size_t paneMargin = tra_get_pane_margin();
+
+    //check if given panes are neighbours
+    if(pane.left == &toMerge){
+        pane.topX = toMerge.topX;
+        pane.width = pane.width + paneMargin + toMerge.width;
+    }else if(pane.right == &toMerge){
+        pane.width = pane.width + paneMargin + toMerge.width;
+    }else if(pane.top == &toMerge){
+        pane.topY = toMerge.topY;
+        pane.height = pane.height + paneMargin + toMerge.height;
+    }else if(pane.bottom == &toMerge){
+        pane.height = pane.height + paneMargin + toMerge.height;
+    }else{
+        PLOG_WARNING << "given panes must be neigbours, aborted";
+        return nullptr;
+    }
+    tra_remove_pane(&toMerge);
+    return &pane;
 }
 
 //TODO

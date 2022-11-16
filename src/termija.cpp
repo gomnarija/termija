@@ -125,20 +125,20 @@ void tra_remove_pane(Pane *pane){
     for(int i = 0;i<termija.panes.size();i++){
         if(termija.panes[i].get() == pane){
             pane_removed = true;
-            if(termija.panes[i] != nullptr){
-                //disconnect
-                Pane &to_remove = *(termija.panes[i]);
+            //disconnect
+            Pane &to_remove = *(termija.panes[i]);
+            if(to_remove.left != nullptr)
                 to_remove.left->right = to_remove.right;
+            if(to_remove.right != nullptr)
                 to_remove.right->left = to_remove.left;
-                to_remove.top->bottom = to_remove.bottom;
-                to_remove.bottom->top = to_remove.top;
-        
-                //destroy rope
-                tra_pane_destroy_rope(to_remove);
-
-                //rescale neighbours //TODO
-            }
-            termija.panes[i].swap(*(termija.panes.end()));
+            if(to_remove.top != nullptr)
+            to_remove.top->bottom = to_remove.bottom;
+            if(to_remove.bottom != nullptr)
+                to_remove.bottom->top = to_remove.top;        
+            //destroy rope
+            tra_pane_destroy_rope(to_remove);
+            //rescale neighbours //TODO
+            termija.panes[i].swap(termija.panes[termija.panes.size()-1]);
             termija.panes.pop_back();
             break;
         }
@@ -170,5 +170,26 @@ Pane* tra_get_current_pane(){
     Termija& termija = Termija::instance();
 
     return termija.currentPane;
+}
+
+void tra_set_current_pane(Pane* pane){
+    if(pane == nullptr){
+        PLOG_ERROR << "given pane is NULL, aborted.";
+        return;
+    }
+    Termija& termija = Termija::instance();
+    bool has_pane = false;
+
+    for(int i=0;i<termija.panes.size();i++){
+        if (termija.panes[i].get() == pane){
+            has_pane = true;
+            break;
+        }
+    }
+    if(has_pane){
+        termija.currentPane = pane;
+    }else{
+        PLOG_WARNING << "given pane wasn't found inside panes, aborted.";
+    }
 }
 }

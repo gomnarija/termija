@@ -16,7 +16,7 @@ inline const int            DEFAULT_SCREEN_WIDTH    = 800;
 inline const int            DEFAULT_SCREEN_HEIGHT   = 600;
 inline const char          *DEFAULT_WINDOW_NAME     = "termija";
 inline const int            DEFAULT_TARGET_FPS      = 60;
-inline const int            DEFAULT_PANE_MARGIN     = 3;
+inline const int            DEFAULT_PANE_MARGIN     = 30;
 
 inline const int            DEFAULT_FONT_SIZE       = 20;
 
@@ -54,6 +54,7 @@ public:
     
     friend Pane*            tra_split_pane_vertically(Pane &,size_t);
     friend Pane*            tra_split_pane_horizontally(Pane &,size_t);
+    friend Pane*            tra_merge_panes(Pane &, Pane &);
     friend RopeNode*        tra_insertText(Pane&,const char*,size_t);
     friend void             tra_pane_destroy_rope(Pane&);
     friend void             tra_draw_pane(const Pane&);
@@ -65,6 +66,7 @@ Pane*               tra_split_pane_vertically(Pane &);
 Pane*               tra_split_pane_horizontally(Pane &);
 Pane*               tra_split_pane_vertically(Pane &,size_t);
 Pane*               tra_split_pane_horizontally(Pane &,size_t);
+Pane*               tra_merge_panes(Pane &, Pane &);
 RopeNode*           tra_insertText(Pane&,const char*,size_t);
 void                tra_pane_destroy_rope(Pane&);
 
@@ -99,6 +101,7 @@ class Termija final{
         friend void             tra_clear_panes();
         friend size_t           tra_get_pane_count();
         friend Pane*            tra_get_current_pane();
+        friend void             tra_set_current_pane(Pane*);
         friend Pane*            tra_split_pane_vertically(Pane &);
         friend Pane*            tra_split_pane_horizontally(Pane &);
         friend Pane*            tra_split_pane_vertically(Pane &,size_t);
@@ -146,6 +149,7 @@ void        tra_remove_pane(Pane *);
 void        tra_clear_panes();
 size_t      tra_get_pane_count();
 Pane*       tra_get_current_pane();
+void        tra_set_current_pane(Pane*);
 
 //drawing
 void        tra_draw();

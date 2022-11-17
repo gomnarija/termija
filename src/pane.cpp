@@ -6,7 +6,20 @@
 
 namespace termija{
 
-Pane::Pane(size_t topX, size_t topY, size_t width, size_t height) :
+
+PaneFrame::PaneFrame() :
+    beginning{0},
+    end{0},
+    localIndexStart{0},
+    nodeStart{nullptr}{};
+
+
+Cursor::Cursor() :
+    x{0},
+    y{0},
+    index{0}{};
+
+Pane::Pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height) :
     top{nullptr},
     bottom{nullptr},
     left{nullptr},
@@ -19,10 +32,6 @@ Pane::Pane(size_t topX, size_t topY, size_t width, size_t height) :
 
     //rope
     this->rope = rope_create_empty();
-
-    //frame
-    this->frame.nodeStart = this->rope.get();
-    this->frame.cursor = 0;
 }
 
 Pane* tra_split_pane_vertically(Pane &pane){
@@ -31,7 +40,7 @@ Pane* tra_split_pane_vertically(Pane &pane){
 /*
     splits the given pane vertically, shortening it's width and creating new pane 
 */
-Pane* tra_split_pane_vertically(Pane &pane, size_t width){
+Pane* tra_split_pane_vertically(Pane &pane, uint16_t width){
     Termija& termija = Termija::instance();
 
     if(pane.width <= width){
@@ -57,7 +66,7 @@ Pane* tra_split_pane_horizontally(Pane &pane){
 /*
     splits the given pane horizontally, shortening it't height and creating new pane 
 */
-Pane* tra_split_pane_horizontally(Pane &pane, size_t height){
+Pane* tra_split_pane_horizontally(Pane &pane, uint16_t height){
     Termija& termija = Termija::instance();
 
     if(pane.height <= height){
@@ -104,7 +113,7 @@ Pane* tra_merge_panes(Pane &pane, Pane &toMerge){
 }
 
 //TODO
-RopeNode* tra_insertText(Pane& pane,const char* text,size_t index){
+RopeNode* tra_insertText(Pane& pane,const char* text,uint16_t index){
     if(text == nullptr){
         PLOG_ERROR << "given text is NULL, aborted";
         return nullptr;
@@ -115,4 +124,21 @@ RopeNode* tra_insertText(Pane& pane,const char* text,size_t index){
 void tra_pane_destroy_rope(Pane& pane){
     rope_destroy(std::move(pane.rope));
 }
+
+/*
+    positions pane frame so that cursor is positioned at it's pane coordinates 
+*/
+void tra_position_pane_frame(Pane &pane){
+    size_t endRopeIndex = rope_weight_measure(*(pane.rope));
+    endRopeIndex = endRopeIndex == 0 ? endRopeIndex : endRopeIndex - 1;
+    //length to and from cursor
+    uint16_t preLength = (pane.width * (pane.cursor.y - 1)) + pane.cursor.x;
+    uint16_t postLength =  (pane.width * (pane.height - pane.cursor.y - 1)) + (pane.width - pane.cursor.x);
+    //calculate beggining and end index
+    pane.frame.beginning = std::min((pane.cursor.index + (size_t)preLength), endRopeIndex);
+    pane.frame.end = std::min((pane.cursor.index + postLength), endRopeIndex);
+    //find range in rope
+    pane.frame.nodeStart = rope_range(*(pane.rope), pane.frame.beginning, pane.frame.end, &pane.frame.localIndexStart);
+}
+
 }

@@ -30,11 +30,11 @@ void tra_init_termija(){
     tra_init_termija(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, DEFAULT_WINDOW_NAME, DEFAULT_PANE_MARGIN);
 }
 
-void tra_init_termija(int screenWidth,int screenHeight,const char * windowTitle){
+void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * windowTitle){
     tra_init_termija(screenWidth, screenHeight, windowTitle, DEFAULT_PANE_MARGIN);
 }
 
-void tra_init_termija(int screenWidth,int screenHeight,const char * windowTitle, int paneMargin){
+void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * windowTitle,uint8_t paneMargin){
     Termija& termija = tra_get_instance();
 
     //plog
@@ -52,7 +52,7 @@ void tra_init_termija(int screenWidth,int screenHeight,const char * windowTitle,
     termija.currentPane = tra_add_pane(paneMargin, paneMargin, screenWidth - 2*paneMargin, screenHeight - 2*paneMargin);
 }
 
-void tra_set_window_size(size_t width, size_t height){
+void tra_set_window_size(uint16_t width,uint16_t height){
     Termija& termija = Termija::instance();
 
     termija.screenWidth = width;
@@ -85,11 +85,11 @@ std::string tra_get_window_title(){
     return termija.windowTitle;
 }
 
-void tra_set_fps(size_t targetFPS){
+void tra_set_fps(uint16_t targetFPS){
     SetTargetFPS(targetFPS);
 }
 
-void tra_set_pane_margin(size_t paneMargin){
+void tra_set_pane_margin(uint8_t paneMargin){
     Termija& termija = Termija::instance();
 
     termija.paneMargin = paneMargin;
@@ -106,7 +106,7 @@ bool tra_should_close(){
     return WindowShouldClose();
 }
 
-Pane* tra_add_pane(size_t topX, size_t topY, size_t width, size_t height){
+Pane* tra_add_pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height){
     Termija& termija = Termija::instance();
 
     termija.panes.push_back(std::make_unique<Pane>(topX, topY, width, height));
@@ -122,7 +122,7 @@ void tra_remove_pane(Pane *pane){
     }
 
     bool        pane_removed = false;
-    for(int i = 0;i<termija.panes.size();i++){
+    for(size_t i = 0;i<termija.panes.size();i++){
         if(termija.panes[i].get() == pane){
             pane_removed = true;
             //disconnect
@@ -153,7 +153,7 @@ void tra_clear_panes(){
     Termija& termija = Termija::instance();
 
     //destroy ropes
-    for(int i = 0;i<termija.panes.size();i++){
+    for(size_t i = 0;i<termija.panes.size();i++){
         tra_pane_destroy_rope(*(termija.panes[i]));
     }
     //clear vector
@@ -180,7 +180,7 @@ void tra_set_current_pane(Pane* pane){
     Termija& termija = Termija::instance();
     bool has_pane = false;
 
-    for(int i=0;i<termija.panes.size();i++){
+    for(size_t i=0;i<termija.panes.size();i++){
         if (termija.panes[i].get() == pane){
             has_pane = true;
             break;

@@ -108,6 +108,7 @@ RopeNode*                       rope_left_most_node(RopeNode&);
 void                            rope_add_additional_weight_at(RopeNode *, size_t, uint16_t, uint16_t);
 void                            rope_pre_weight_rebalance(RopeFlags *, uint16_t );
 void                            rope_post_weight_rebalance(RopeFlags *, uint16_t );
+RopeNode*                       rope_range(RopeNode&, size_t, size_t, size_t *);
 std::string                     rope_dot(const RopeNode&);
 
 

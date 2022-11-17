@@ -741,6 +741,49 @@ void rope_post_weight_rebalance(RopeFlags *flags, uint16_t weight){
 }
 
 /*
+    returns node that holds range from given beggining to given end;
+        on error return nullptr
+*/
+RopeNode* rope_range(RopeNode& rope, size_t beginning, size_t end, size_t *localIndexStart){
+    if(end <= beginning){
+        PLOG_ERROR << "end is less than beginning, aborted.";
+        return nullptr;
+    }
+    std::stack<RopeNode*> nodeStack;
+    size_t localIndex=0;
+    RopeNode *beginNode = rope_node_at_index_trace(rope, beginning, &nodeStack, &localIndex);
+    //go up the stack while localInde+end-start is bigger than weight
+    RopeNode *current = beginNode;
+    while(!(current->weight > (localIndex+(end-beginning)))){
+        if(!nodeStack.empty()){
+            current = nodeStack.top();
+            nodeStack.pop();
+        }else{
+            PLOG_ERROR << "range not found.";
+            return nullptr;
+        }
+    }
+    //count localIndexStart
+    ///localIndexStart = rope_left_most_node_index(current)
+    RopeNode *prev ,*c;
+    prev = c  = current;
+    *localIndexStart = 0;
+    while(!nodeStack.empty()){
+        c = nodeStack.top();
+        nodeStack.pop();
+        //if right child, add to LIS
+        if(prev->right.get() == c){
+            *localIndexStart += c->weight;
+        }
+    }
+    (*localIndexStart)--;//index from 0
+    return current;
+}
+
+
+
+
+/*
     generates DOT for a given rope
 */
 std::string rope_dot(const RopeNode &rope){

@@ -66,3 +66,66 @@ TEST_CASE( "Pane merged", "[tra_merge_panes]" ) {
         termija::tra_clear_panes();
     }
 }
+
+TEST_CASE( "Cursor move", "[tra_move_cursor]" ) {
+    
+    SECTION("merging panes"){
+        termija::tra_set_pane_margin(3);
+        std::string text(3000, 'm');
+        termija::Pane *top = termija::tra_add_pane(0, 0, 500, 500);
+        termija::tra_insert_text_at_cursor(*top, text.c_str());
+
+        const termija::Cursor &c = termija::tra_get_cursor(*top);
+
+        REQUIRE(c.x == 12);
+        REQUIRE(c.y == 6);
+
+        termija::tra_move_cursor_down(top, 1000);
+
+        REQUIRE(c.x == 8);
+        REQUIRE(c.y == 4);
+
+        termija::tra_clear_panes();
+    }
+}
+
+TEST_CASE( "Cursor positioned", "[tra_move_cursor]" ) {
+    
+    SECTION("positions cursor"){
+        termija::tra_set_pane_margin(3);
+        std::string text(3000, 'm');
+        termija::Pane *top = termija::tra_add_pane(0, 0, 500, 500);
+        termija::tra_insert_text_at_cursor(*top, text.c_str());
+
+        const termija::Cursor &c = termija::tra_get_cursor(*top);
+
+        REQUIRE(c.x == 12);
+        REQUIRE(c.y == 6);
+
+        termija::tra_position_cursor(top, 15, 5);
+
+        REQUIRE(c.x == 15);
+        REQUIRE(c.y == 5);
+
+        termija::tra_clear_panes();
+    }
+    
+    SECTION("positions cursor invalid coordinates"){
+        termija::tra_set_pane_margin(3);
+        std::string text(3000, 'm');
+        termija::Pane *top = termija::tra_add_pane(0, 0, 500, 500);
+        termija::tra_insert_text_at_cursor(*top, text.c_str());
+
+        const termija::Cursor &c = termija::tra_get_cursor(*top);
+
+        REQUIRE(c.x == 12);
+        REQUIRE(c.y == 6);
+
+        termija::tra_position_cursor(top, 13, 6);
+
+        REQUIRE(c.x == 12);
+        REQUIRE(c.y == 6);
+
+        termija::tra_clear_panes();
+    }
+}

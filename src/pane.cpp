@@ -17,7 +17,8 @@ PaneFrame::PaneFrame() :
 Cursor::Cursor() :
     x{0},
     y{0},
-    index{0}{};
+    index{0},
+    isDrawn{true}{};
 
 Pane::Pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height) :
     top{nullptr},
@@ -28,10 +29,14 @@ Pane::Pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height) :
     topY{topY},
     width{width},
     height{height},
+    textMargin{1},
     fontSize{DEFAULT_FONT_SIZE}{
 
     //rope
     this->rope = rope_create_empty();
+
+    //frame
+    this->frame.nodeStart = this->rope.get();
 }
 
 Pane* tra_split_pane_vertically(Pane &pane){
@@ -112,13 +117,33 @@ Pane* tra_merge_panes(Pane &pane, Pane &toMerge){
     return &pane;
 }
 
-//TODO
-RopeNode* tra_insertText(Pane& pane,const char* text,uint16_t index){
+/*
+    inserts given text inside frame, at cursor position
+*/
+RopeFlags* tra_insert_text_at_cursor(Pane& pane,const char* text){
     if(text == nullptr){
         PLOG_ERROR << "given text is NULL, aborted";
         return nullptr;
     }
-    return nullptr;
+    //insert at local index inside frame
+    size_t localIndex = pane.cursor.index - pane.frame.localIndexStart;
+    size_t weight = rope_weight_measure(*(pane.frame.nodeStart));
+    if(localIndex >= weight && weight != 0){
+        PLOG_ERROR << "invalid cursor index, aborted.";
+        return nullptr;
+    }
+    //insert at index, return inserted node
+    rope_insert_at(pane.frame.nodeStart, localIndex, text);
+    weight = rope_weight_measure_set(pane.rope.get());
+    RopeNode *node = rope_node_at_index(*(pane.frame.nodeStart), localIndex + 1, NULL);
+    if(node == nullptr){
+        PLOG_ERROR << "couldn't find node at index.";
+        return nullptr;
+    }
+    // cursor
+    tra_move_cursor_up(&pane, strlen(text));
+    tra_position_pane_frame(pane);
+    return node->flags.get();
 }
 
 void tra_pane_destroy_rope(Pane& pane){
@@ -130,15 +155,112 @@ void tra_pane_destroy_rope(Pane& pane){
 */
 void tra_position_pane_frame(Pane &pane){
     size_t endRopeIndex = rope_weight_measure(*(pane.rope));
+    size_t textWidth = pane.width - (2*pane.textMargin);
+    size_t textHeight = pane.height - (2*pane.textMargin);
     endRopeIndex = endRopeIndex == 0 ? endRopeIndex : endRopeIndex - 1;
     //length to and from cursor
-    uint16_t preLength = (pane.width * (pane.cursor.y - 1)) + pane.cursor.x;
-    uint16_t postLength =  (pane.width * (pane.height - pane.cursor.y - 1)) + (pane.width - pane.cursor.x);
+    uint16_t preLength = (textWidth * (pane.cursor.y - 1)) + pane.cursor.x;
+    uint16_t postLength =  (textWidth * (textHeight - pane.cursor.y - 1)) + (textWidth - pane.cursor.x);
     //calculate beggining and end index
     pane.frame.beginning = std::min((pane.cursor.index + (size_t)preLength), endRopeIndex);
     pane.frame.end = std::min((pane.cursor.index + postLength), endRopeIndex);
     //find range in rope
     pane.frame.nodeStart = rope_range(*(pane.rope), pane.frame.beginning, pane.frame.end, &pane.frame.localIndexStart);
+}
+
+const Cursor& tra_get_cursor(Pane& pane){
+    return pane.cursor;
+}
+
+/*
+    move cursor index up
+*/
+void tra_move_cursor_up(Pane *pane, uint16_t  diff){
+    if(pane == nullptr){
+        PLOG_ERROR << "pane is NULL, aborted.";
+        return;
+    }
+    if((pane->cursor.index==0?1:pane->cursor.index + diff) >=
+        pane->rope->weight){
+        PLOG_ERROR << "invalid index, aborted.";
+        return;
+    }
+    size_t textWidth = pane->width - (2*(pane->textMargin));
+    size_t textHeight = pane->height - (2*(pane->textMargin));
+    //move up
+    pane->cursor.index += diff;
+    pane->cursor.y += (diff/textWidth);
+    uint16_t leftover = diff%textWidth;
+    if(leftover > (textWidth - pane->cursor.x)){
+        pane->cursor.x = leftover - (textWidth - pane->cursor.x);
+        pane->cursor.y ++;
+    }else if(leftover < (textWidth - pane->cursor.x)){
+        pane->cursor.x += leftover;
+    }
+
+    //out of bounds
+    if(pane->cursor.y < 0){
+        pane->cursor.y = 0;
+    }else if(pane->cursor.y >= textHeight){
+        pane->cursor.y = textHeight;
+    }
+
+}
+
+/*
+    move cursor index down
+*/
+void tra_move_cursor_down(Pane *pane, uint16_t  diff){
+    if(pane == nullptr){
+        PLOG_ERROR << "pane is NULL, aborted.";
+        return;
+    }
+    if((pane->cursor.index==0?1:pane->cursor.index - diff) >= 
+        pane->rope->weight){
+        PLOG_ERROR << "invalid index, aborted.";
+        return;
+    }
+    size_t textWidth = pane->width - (2*(pane->textMargin));
+    size_t textHeight = pane->height - (2*(pane->textMargin));
+    //move down
+    diff = +diff;
+    pane->cursor.index -= diff;
+    pane->cursor.y -= (diff/textWidth);
+    uint16_t leftover = diff%textWidth;
+    if(leftover > pane->cursor.x){
+        pane->cursor.x = textWidth - (leftover - pane->cursor.x);
+        pane->cursor.y --;
+    }else{
+        pane->cursor.x -= leftover;
+    }
+
+    //out of bounds
+    if(pane->cursor.y < 0){
+        pane->cursor.y = 0;
+    }else if(pane->cursor.y >= textHeight){
+        pane->cursor.y = textHeight;
+    }
+
+}
+
+/*
+    positions cursor at coordinates
+*/
+void tra_position_cursor(Pane *pane, uint16_t x, uint16_t y){
+    if(pane == nullptr){
+        PLOG_ERROR << "pane is NULL, aborted.";
+        return;
+    }
+    size_t textWidth = pane->width - (2*(pane->textMargin));
+    size_t textHeight = pane->height - (2*(pane->textMargin));
+    size_t avaliableLength = std::min(pane->cursor.index, textWidth * textHeight);
+
+    if(((y * textWidth) + x) > avaliableLength){
+        PLOG_ERROR << "invalid coordinates, aborted.";
+        return;
+    }
+    pane->cursor.x = x;
+    pane->cursor.y = y;
 }
 
 }

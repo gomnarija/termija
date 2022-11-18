@@ -11,13 +11,20 @@
 
 namespace termija{
 
+Termija::Termija() :
+    screenWidth{0},
+    screenHeight{0},
+    paneMargin{0},
+    currentPane{nullptr}{}
+
+
 
 Termija& tra_get_instance(){
     return Termija::instance();
 }
 
 void tra_terminate(){
-    Termija& termija = Termija::instance();
+    const Termija& termija = Termija::instance();
 
     //delete panes
     tra_clear_panes();
@@ -61,13 +68,13 @@ void tra_set_window_size(uint16_t width,uint16_t height){
 }
 
 size_t tra_get_window_width(){
-    Termija& termija = Termija::instance();
+    const Termija& termija = Termija::instance();
 
     return termija.screenWidth;
 }
 
 size_t tra_get_window_height(){
-    Termija& termija = Termija::instance();
+    const Termija& termija = Termija::instance();
 
     return termija.screenHeight;
 }
@@ -80,7 +87,7 @@ void tra_set_window_title(const char *windowTitle){
 }
 
 std::string tra_get_window_title(){
-    Termija& termija = Termija::instance();
+    const Termija& termija = Termija::instance();
 
     return termija.windowTitle;
 }
@@ -97,7 +104,7 @@ void tra_set_pane_margin(uint8_t paneMargin){
 }
 
 size_t tra_get_pane_margin(){
-    Termija& termija = Termija::instance();
+    const Termija& termija = Termija::instance();
 
     return termija.paneMargin;
 }
@@ -161,13 +168,13 @@ void tra_clear_panes(){
 }
 
 size_t tra_get_pane_count(){
-    Termija& termija = Termija::instance();
+    const Termija& termija = Termija::instance();
     
     return termija.panes.size();
 }
 
 Pane* tra_get_current_pane(){
-    Termija& termija = Termija::instance();
+    const Termija& termija = Termija::instance();
 
     return termija.currentPane;
 }

@@ -62,7 +62,7 @@ private:
     std::queue<RopeNode*>   nodeQueue;
 
 public:
-    RopeIteratorBFS(RopeNode *rope, size_t start = 0);
+    explicit RopeIteratorBFS(RopeNode *rope, size_t start = 0);
 
     RopeNode* next() override final;
     bool      hasNext() override final;
@@ -74,7 +74,7 @@ private:
     std::stack<RopeNode*>   nodeStack;
 
 public:
-    RopeLeafIterator(RopeNode *rope, size_t start = 0);
+    explicit RopeLeafIterator(RopeNode *rope, size_t start = 0);
 
     RopeNode* next() override final;
     bool      hasNext() override final;

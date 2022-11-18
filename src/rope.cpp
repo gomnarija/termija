@@ -320,7 +320,7 @@ void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prop
         PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
-    if(index >= rope->weight){
+    if(index >= rope->weight && rope->weight != 0){
         PLOG_ERROR << "given index is bigger than rope weight, aborted. index: " << index;
         return;
     }

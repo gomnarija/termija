@@ -57,11 +57,11 @@ public:
     Pane*                   bottom;
     Pane*                   left;
     Pane*                   right;
-    
     uint16_t                topX;
     uint16_t                topY;
     uint16_t                width;
     uint16_t                height;
+    uint8_t                 textMargin;//non-zero
     uint8_t                 fontSize;
 
 
@@ -73,11 +73,15 @@ public:
     friend Pane*            tra_split_pane_vertically(Pane &,uint16_t);
     friend Pane*            tra_split_pane_horizontally(Pane &,uint16_t);
     friend Pane*            tra_merge_panes(Pane &, Pane &);
-    friend RopeNode*        tra_insertText(Pane&,const char*,uint16_t);
+    friend RopeFlags*       tra_insert_text_at_cursor(Pane&,const char*);
     friend void             tra_pane_destroy_rope(Pane &);
     friend void             tra_draw_pane(const Pane &);
     friend void             tra_draw_pane_border(const Pane &);
     friend void             tra_position_pane_frame(Pane &pane);
+    friend void             tra_move_cursor_up(Pane *, uint16_t);
+    friend void             tra_move_cursor_down(Pane *, uint16_t);
+    friend void             tra_position_cursor(Pane *, uint16_t, uint16_t);
+    friend const Cursor&    tra_get_cursor(Pane&);
 
 };
 
@@ -86,9 +90,13 @@ Pane*               tra_split_pane_horizontally(Pane &);
 Pane*               tra_split_pane_vertically(Pane &,uint16_t);
 Pane*               tra_split_pane_horizontally(Pane &,uint16_t);
 Pane*               tra_merge_panes(Pane &, Pane &);
-RopeNode*           tra_insertText(Pane&,const char*,uint16_t);
+RopeFlags*          tra_insert_text_at_cursor(Pane&,const char*);
 void                tra_pane_destroy_rope(Pane &);
 void                tra_position_pane_frame(Pane &pane);
+void                tra_move_cursor_up(Pane *, uint16_t);
+void                tra_move_cursor_down(Pane *, uint16_t);
+void                tra_position_cursor(Pane *, uint16_t, uint16_t);
+const Cursor&       tra_get_cursor(Pane&);
 
 //singleton
 class Termija final{
@@ -132,7 +140,7 @@ class Termija final{
 
 
     private:
-        Termija(){}
+        Termija();
         Termija(const Termija&)         = delete;
         void operator=(Termija const&)  = delete;
 

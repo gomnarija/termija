@@ -626,3 +626,81 @@ TEST_CASE( "Rope flags additional weight", "[rope_add_additional_weight_at]" ) {
     }
 
 }
+
+TEST_CASE( "Rope ranges", "[rope_range]" ) {
+
+    SECTION("gets rope range"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), "_append");
+        rope_prepend(rope.get(), "prepend_");
+    
+        size_t localIndexStart  = 0;
+        RopeNode *range = rope_range(*rope, 3, 4, &localIndexStart);
+
+        REQUIRE( range != nullptr );
+        REQUIRE( range->weight == 8 );
+        REQUIRE( localIndexStart == 0 );
+
+        
+        std::string new_rope_text;
+        RopeLeafIterator litnrope(range);
+        RopeNode *c;
+
+        while((c = litnrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            new_rope_text += c->text.get();
+        }
+        REQUIRE( new_rope_text == "prepend_" );
+
+    }
+
+    SECTION("gets rope range"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), "_append");
+        rope_prepend(rope.get(), "prepend_");
+        rope_insert_at(rope.get(), 12, "inserted_");
+    
+        size_t localIndexStart  = 0;
+        RopeNode *range = rope_range(*rope, 15, 28, &localIndexStart);
+
+        REQUIRE( range != nullptr );
+        REQUIRE( range->weight == 25 );
+        REQUIRE( localIndexStart == 7 );
+
+        
+        std::string new_rope_text;
+        RopeLeafIterator litnrope(range);
+        RopeNode *c;
+
+        while((c = litnrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            new_rope_text += c->text.get();
+        }
+        REQUIRE( new_rope_text == "some_inserted_text_append" );
+    }
+
+    SECTION("gets rope range at invalid index"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), "_append");
+        rope_prepend(rope.get(), "prepend_");
+        rope_insert_at(rope.get(), 12, "inserted_");
+    
+        size_t localIndexStart  = 0;
+        RopeNode *range = rope_range(*rope, 33, 35, &localIndexStart);
+
+        REQUIRE( range == nullptr );
+    }
+
+    SECTION("gets rope range of invalid lenght"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), "_append");
+        rope_prepend(rope.get(), "prepend_");
+        rope_insert_at(rope.get(), 12, "inserted_");
+    
+        size_t localIndexStart  = 0;
+        RopeNode *range = rope_range(*rope, 5, 45, &localIndexStart);
+
+        REQUIRE( range == nullptr );
+    }
+
+}

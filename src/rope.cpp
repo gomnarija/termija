@@ -748,6 +748,10 @@ RopeNode* rope_range(RopeNode& rope, size_t beginning, size_t end, size_t *local
     if(end <= beginning){
         PLOG_ERROR << "end is less than beginning, aborted.";
         return nullptr;
+    }else if(beginning >= rope.weight ||
+                end >= rope.weight){
+        PLOG_ERROR << "invalid index, aborted";
+        return nullptr;
     }
     std::stack<RopeNode*> nodeStack;
     size_t localIndex=0;
@@ -767,16 +771,16 @@ RopeNode* rope_range(RopeNode& rope, size_t beginning, size_t end, size_t *local
     ///localIndexStart = rope_left_most_node_index(current)
     RopeNode *prev ,*c;
     prev = c  = current;
-    *localIndexStart = 0;
+    (*localIndexStart) = 0;
     while(!nodeStack.empty()){
         c = nodeStack.top();
         nodeStack.pop();
         //if right child, add to LIS
-        if(prev->right.get() == c){
-            *localIndexStart += c->weight;
+        if(c->right.get() == prev){
+            (*localIndexStart) += c->weight;
         }
     }
-    (*localIndexStart)--;//index from 0
+    (*localIndexStart) = (*localIndexStart)==0?0:(*localIndexStart)-1;//index from 0
     return current;
 }
 

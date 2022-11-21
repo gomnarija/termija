@@ -2,6 +2,7 @@
 #define TERMIJA_H
 
 #include "rope.h"
+#include "raylib.h"
 
 #include <string>
 #include <memory>
@@ -18,14 +19,17 @@ inline const char               *DEFAULT_WINDOW_NAME     = "termija";
 inline const uint16_t            DEFAULT_TARGET_FPS      = 60;
 inline const uint8_t             DEFAULT_PANE_MARGIN     = 30;
 
-inline const uint8_t             DEFAULT_FONT_SIZE       = 20;
+inline const uint8_t             DEFAULT_FONT_WIDTH       = 8;
+inline const uint8_t             DEFAULT_FONT_HEIGHT      = 16;
+inline const uint8_t             DEFAULT_FONT_SPACING     = 1;
 
 
 
 struct PaneFrame final{
     size_t          beginning;
     size_t          end;
-    size_t          localIndexStart;
+    size_t          localIndexStart;//start of the rope to beggining
+    size_t          localBeginning;
     RopeNode*       nodeStart;
 
     PaneFrame();
@@ -47,10 +51,11 @@ struct Cursor final{
 struct Pane final{
 private:
 
-    std::unique_ptr<RopeNode>   rope;
-    std::stack<char>            inputStack;
-    Cursor                      cursor;
-    PaneFrame                   frame;
+    std::vector<std::unique_ptr<RopeNode>>          ropes;
+    RopeNode                                       *rope;
+    std::stack<char>                                inputStack;
+    Cursor                                          cursor;
+    PaneFrame                                       frame;
 
 public:
     Pane*                   top;
@@ -62,7 +67,9 @@ public:
     uint16_t                width;
     uint16_t                height;
     uint8_t                 textMargin;//non-zero
-    uint8_t                 fontSize;
+    uint8_t                 fontWidth;
+    uint8_t                 fontHeight;
+    uint8_t                 fontSpacing;
 
 
     Pane(uint16_t,uint16_t,uint16_t,uint16_t);
@@ -82,30 +89,33 @@ public:
     friend void             tra_move_cursor_down(Pane *, uint16_t);
     friend void             tra_position_cursor(Pane *, uint16_t, uint16_t);
     friend const Cursor&    tra_get_cursor(Pane&);
+    friend void             tra_set_font_size(Pane&, uint8_t, uint8_t);
 
 };
 
-Pane*               tra_split_pane_vertically(Pane &);
-Pane*               tra_split_pane_horizontally(Pane &);
-Pane*               tra_split_pane_vertically(Pane &,uint16_t);
-Pane*               tra_split_pane_horizontally(Pane &,uint16_t);
-Pane*               tra_merge_panes(Pane &, Pane &);
-RopeFlags*          tra_insert_text_at_cursor(Pane&,const char*);
-void                tra_pane_destroy_rope(Pane &);
-void                tra_position_pane_frame(Pane &pane);
-void                tra_move_cursor_up(Pane *, uint16_t);
-void                tra_move_cursor_down(Pane *, uint16_t);
-void                tra_position_cursor(Pane *, uint16_t, uint16_t);
-const Cursor&       tra_get_cursor(Pane&);
+Pane*                       tra_split_pane_vertically(Pane &);
+Pane*                       tra_split_pane_horizontally(Pane &);
+Pane*                       tra_split_pane_vertically(Pane &,uint16_t);
+Pane*                       tra_split_pane_horizontally(Pane &,uint16_t);
+Pane*                       tra_merge_panes(Pane &, Pane &);
+RopeFlags*                  tra_insert_text_at_cursor(Pane&,const char*);
+void                        tra_pane_destroy_rope(Pane &); 
+void                        tra_position_pane_frame(Pane &pane);
+void                        tra_move_cursor_up(Pane *, uint16_t);
+void                        tra_move_cursor_down(Pane *, uint16_t);
+void                        tra_position_cursor(Pane *, uint16_t, uint16_t);
+const Cursor&               tra_get_cursor(Pane&);
+void                        tra_set_font_size(Pane&, uint8_t, uint8_t);
 
 //singleton
 class Termija final{
     //window
     private:
-        uint16_t           screenWidth;
-        uint16_t           screenHeight;
-        std::string        windowTitle;
-        uint8_t            paneMargin;
+        uint16_t                            screenWidth;
+        uint16_t                            screenHeight;
+        std::string                         windowTitle;
+        uint8_t                             paneMargin;
+        std::unique_ptr<Font>               font;
 
     public:
         friend void             tra_set_window_size(const uint16_t, const uint16_t);
@@ -124,6 +134,7 @@ class Termija final{
 
     public:
         friend void             tra_init_termija(uint16_t screenWidth, uint16_t screenHeight,const char * windowTitle, uint8_t paneMargin); 
+        friend void             tra_terminate();
         friend Pane*            tra_add_pane(uint16_t, uint16_t, uint16_t, uint16_t);
         friend void             tra_remove_pane(Pane *);
         friend void             tra_clear_panes();
@@ -134,6 +145,8 @@ class Termija final{
         friend Pane*            tra_split_pane_horizontally(Pane &);
         friend Pane*            tra_split_pane_vertically(Pane &, uint16_t);
         friend Pane*            tra_split_pane_horizontally(Pane &, uint16_t);
+        friend void             tra_load_font(const char*, uint8_t, uint16_t);
+        friend Font*            tra_get_font();
 
     public:
         friend void             tra_draw();
@@ -183,6 +196,20 @@ void        tra_set_current_pane(Pane*);
 void        tra_draw();
 void        tra_draw_pane(const Pane&);
 void        tra_draw_pane_border(const Pane&);
+
+
+//font
+void        tra_load_font(const char*, uint8_t, uint16_t);
+Font*       tra_get_font();
+
+
+inline const uint16_t tra_get_text_width(const Pane& pane){
+    return ((pane.width - (2*(pane.textMargin))) / (pane.fontWidth+pane.fontSpacing));
+}
+
+inline const uint16_t tra_get_text_height(const Pane& pane){
+    return ((pane.height - (2*(pane.textMargin))) / pane.fontHeight);
+}
 
 };
 

@@ -3,6 +3,7 @@
 
 
 #include <cstring>
+#include <iostream>//destroy
 
 namespace termija{
 
@@ -11,6 +12,7 @@ PaneFrame::PaneFrame() :
     beginning{0},
     end{0},
     localIndexStart{0},
+    localBeginning{0},
     nodeStart{nullptr}{};
 
 
@@ -30,13 +32,16 @@ Pane::Pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height) :
     width{width},
     height{height},
     textMargin{1},
-    fontSize{DEFAULT_FONT_SIZE}{
+    fontWidth{DEFAULT_FONT_WIDTH},
+    fontHeight{DEFAULT_FONT_HEIGHT},
+    fontSpacing{DEFAULT_FONT_SPACING}{
 
     //rope
-    this->rope = rope_create_empty();
+    this->ropes.push_back(std::move(rope_create_empty()));
+    this->rope = this->ropes[0].get();
 
     //frame
-    this->frame.nodeStart = this->rope.get();
+    this->frame.nodeStart = this->rope;
 }
 
 Pane* tra_split_pane_vertically(Pane &pane){
@@ -134,7 +139,7 @@ RopeFlags* tra_insert_text_at_cursor(Pane& pane,const char* text){
     }
     //insert at index, return inserted node
     rope_insert_at(pane.frame.nodeStart, localIndex, text);
-    weight = rope_weight_measure_set(pane.rope.get());
+    weight = rope_weight_measure_set(pane.rope);
     RopeNode *node = rope_node_at_index(*(pane.frame.nodeStart), localIndex + 1, NULL);
     if(node == nullptr){
         PLOG_ERROR << "couldn't find node at index.";
@@ -147,7 +152,8 @@ RopeFlags* tra_insert_text_at_cursor(Pane& pane,const char* text){
 }
 
 void tra_pane_destroy_rope(Pane& pane){
-    rope_destroy(std::move(pane.rope));
+   for(size_t i=0;i<pane.ropes.size();i++) 
+        rope_destroy(std::move(pane.ropes[i]));
 }
 
 /*
@@ -155,17 +161,21 @@ void tra_pane_destroy_rope(Pane& pane){
 */
 void tra_position_pane_frame(Pane &pane){
     size_t endRopeIndex = rope_weight_measure(*(pane.rope));
-    size_t textWidth = pane.width - (2*pane.textMargin);
-    size_t textHeight = pane.height - (2*pane.textMargin);
+    size_t textWidth = tra_get_text_width(pane);
+    size_t textHeight = tra_get_text_height(pane);
     endRopeIndex = endRopeIndex == 0 ? endRopeIndex : endRopeIndex - 1;
     //length to and from cursor
-    uint16_t preLength = (textWidth * (pane.cursor.y - 1)) + pane.cursor.x;
-    uint16_t postLength =  (textWidth * (textHeight - pane.cursor.y - 1)) + (textWidth - pane.cursor.x);
+    uint16_t preLength = (textWidth * (pane.cursor.y)) + pane.cursor.x;
+    preLength = preLength>0?preLength-1:preLength;//index from 0
+    uint16_t postLength =  (textWidth * (textHeight - pane.cursor.y)) + (textWidth - pane.cursor.x);
+    postLength = postLength>0?postLength-1:postLength;//index from 0
     //calculate beggining and end index
-    pane.frame.beginning = std::min((pane.cursor.index + (size_t)preLength), endRopeIndex);
+    pane.frame.beginning = std::min((pane.cursor.index - (size_t)preLength ), endRopeIndex);
     pane.frame.end = std::min((pane.cursor.index + postLength), endRopeIndex);
     //find range in rope
     pane.frame.nodeStart = rope_range(*(pane.rope), pane.frame.beginning, pane.frame.end, &pane.frame.localIndexStart);
+    //local beggining index
+    pane.frame.localBeginning = pane.frame.beginning - pane.frame.localIndexStart;
 }
 
 const Cursor& tra_get_cursor(Pane& pane){
@@ -185,10 +195,10 @@ void tra_move_cursor_up(Pane *pane, uint16_t  diff){
         PLOG_ERROR << "invalid index, aborted.";
         return;
     }
-    size_t textWidth = pane->width - (2*(pane->textMargin));
-    size_t textHeight = pane->height - (2*(pane->textMargin));
+    size_t textWidth = tra_get_text_width(*pane);
+    size_t textHeight = tra_get_text_height(*pane);
     //move up
-    pane->cursor.index += diff;
+    pane->cursor.index = pane->cursor.index==0?diff-1:pane->cursor.index+diff;
     pane->cursor.y += (diff/textWidth);
     uint16_t leftover = diff%textWidth;
     if(leftover > (textWidth - pane->cursor.x)){
@@ -199,10 +209,8 @@ void tra_move_cursor_up(Pane *pane, uint16_t  diff){
     }
 
     //out of bounds
-    if(pane->cursor.y < 0){
-        pane->cursor.y = 0;
-    }else if(pane->cursor.y >= textHeight){
-        pane->cursor.y = textHeight;
+    if(pane->cursor.y >= textHeight){
+        pane->cursor.y = textHeight-1;
     }
 
 }
@@ -220,8 +228,8 @@ void tra_move_cursor_down(Pane *pane, uint16_t  diff){
         PLOG_ERROR << "invalid index, aborted.";
         return;
     }
-    size_t textWidth = pane->width - (2*(pane->textMargin));
-    size_t textHeight = pane->height - (2*(pane->textMargin));
+    size_t textWidth = tra_get_text_width(*pane);
+    size_t textHeight = tra_get_text_height(*pane);
     //move down
     diff = +diff;
     pane->cursor.index -= diff;
@@ -235,10 +243,8 @@ void tra_move_cursor_down(Pane *pane, uint16_t  diff){
     }
 
     //out of bounds
-    if(pane->cursor.y < 0){
+    if(pane->cursor.y >= textHeight){
         pane->cursor.y = 0;
-    }else if(pane->cursor.y >= textHeight){
-        pane->cursor.y = textHeight;
     }
 
 }
@@ -251,8 +257,8 @@ void tra_position_cursor(Pane *pane, uint16_t x, uint16_t y){
         PLOG_ERROR << "pane is NULL, aborted.";
         return;
     }
-    size_t textWidth = pane->width - (2*(pane->textMargin));
-    size_t textHeight = pane->height - (2*(pane->textMargin));
+    size_t textWidth = tra_get_text_width(*pane);
+    size_t textHeight = tra_get_text_height(*pane);
     size_t avaliableLength = std::min(pane->cursor.index, textWidth * textHeight);
 
     if(((y * textWidth) + x) > avaliableLength){
@@ -261,6 +267,12 @@ void tra_position_cursor(Pane *pane, uint16_t x, uint16_t y){
     }
     pane->cursor.x = x;
     pane->cursor.y = y;
+}
+
+
+void tra_set_font_size(Pane& pane, uint8_t width, uint8_t height){
+    pane.fontWidth = width;
+    pane.height = height;
 }
 
 }

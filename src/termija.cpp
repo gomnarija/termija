@@ -4,8 +4,8 @@
 #include <cstring>  //strcpy
 #include <stack> //destroy
 
-#include "raylib.h"
 #include "termija.h"
+#include <raylib.h>
 #include <plog/Log.h>
 #include <plog/Initializers/RollingFileInitializer.h>
 
@@ -30,6 +30,8 @@ void tra_terminate(){
     tra_clear_panes();
 
     //raylib
+    if(termija.font != nullptr)
+        UnloadFont(*(termija.font));
     CloseWindow();
 }
 
@@ -199,4 +201,28 @@ void tra_set_current_pane(Pane* pane){
         PLOG_WARNING << "given pane wasn't found inside panes, aborted.";
     }
 }
+
+void tra_load_font(const char *fontPath, uint8_t fontSize, uint16_t glyphCount){
+    if(fontPath == nullptr){
+        PLOG_ERROR << "given path is NULL, aborted.";
+        return;
+    }
+    Termija& termija = Termija::instance();
+    termija.font = std::make_unique<Font>(LoadFontEx(fontPath, fontSize, NULL, glyphCount));
+
+    if(termija.font->glyphCount == 0){
+        PLOG_ERROR << "failed to load font: " << fontPath;
+        return;
+    }
+    for(int i =0;i<termija.font->glyphCount;i++){
+        std::cout << termija.font->recs[i].width << "\n";
+    }
+}
+
+Font* tra_get_font(){
+    Termija& termija = Termija::instance();
+    return termija.font.get();
+}
+
+
 }

@@ -72,13 +72,17 @@ public:
 class RopeLeafIterator  :   public RopeIterator{
 private:
     std::stack<RopeNode*>   nodeStack;
+    size_t                  localStartIndex;
 
 public:
+
+
     explicit RopeLeafIterator(RopeNode *rope, size_t start = 0);
 
     RopeNode* next() override final;
     bool      hasNext() override final;
     RopeNode* pop() override final;
+    size_t    local_start_index();
 };
 
 

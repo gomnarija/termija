@@ -26,7 +26,7 @@
 void                                            _split_node(RopeNode*, size_t, std::unique_ptr<RopeNode> &, std::unique_ptr<RopeNode> &);
 std::vector<std::unique_ptr<RopeNode>>          _harvest(std::unique_ptr<RopeNode>);
 std::unique_ptr<RopeNode>                       _merge(std::vector<std::unique_ptr<RopeNode>>*, size_t, size_t);
-
+RopeNode*                                       _rope_node_at_index_trace_right(RopeNode &,size_t, std::stack<RopeNode*> *, size_t *);
 
 RopeFlags::RopeFlags()
 : preWeight{0}, postWeight{0}, effects{0}
@@ -96,18 +96,8 @@ RopeLeafIterator::RopeLeafIterator(RopeNode *rope, size_t start){
         PLOG_ERROR << "given rope is NULL, aborted.";
         return;
     }
-    //find left-most leaf
-    current = rope_left_most_node_trace(*rope, &nodeStack);
-    //go to start
-    while(start-- > 0){
-        if(hasNext())
-            next();
-        else{
-            PLOG_ERROR << "given start point is bigger than number of leafs, aborted.";
-            current = nullptr;
-            return;
-        }
-    }
+    //find node at index
+    current = _rope_node_at_index_trace_right(*rope, start, &nodeStack, &localStartIndex);
 }
 RopeNode* RopeLeafIterator::next(){
     if(!hasNext()){
@@ -142,6 +132,9 @@ RopeNode* RopeLeafIterator::pop(){
     next();
     return prev;
 }
+size_t RopeLeafIterator::local_start_index(){
+    return this->localStartIndex;
+}
 
 /*
     creates empty rope
@@ -157,7 +150,7 @@ std::unique_ptr<RopeNode> rope_create_empty(){
 */
 std::unique_ptr<RopeNode> rope_create_node(const char* text){
     if(text == nullptr){
-        PLOG_ERROR << "given rope is NULL, aborted.";
+        PLOG_ERROR << "given text is NULL, aborted.";
         return nullptr;
     }
     std::unique_ptr<RopeNode> node = std::make_unique<RopeNode>();
@@ -262,7 +255,7 @@ void rope_prepend(RopeNode *rope,std::unique_ptr<RopeNode> prope){
     left_most->left.swap(prope);
     left_most->weight = prope_weight;
     //push text to the new right node
-    left_most->right = rope_create_node(left_most->text.get());
+    left_most->right = left_most->text==nullptr?nullptr:rope_create_node(left_most->text.get());
     left_most->text.release();
     //go up the stack changing weight
     RopeNode *current;
@@ -621,6 +614,9 @@ std::unique_ptr<RopeNode> rope_split_at(RopeNode *rope,size_t index){
             on error returns null
 */
 RopeNode* rope_node_at_index_trace(RopeNode &rope,size_t index, std::stack<RopeNode*> *nodeStack, size_t *local_index){
+    if(index == 0){
+        return rope_left_most_node_trace(rope, nodeStack);
+    }
     //leaf
     if(rope.left == nullptr && rope.right == nullptr){
         if(index+1 > rope.weight){
@@ -641,10 +637,40 @@ RopeNode* rope_node_at_index_trace(RopeNode &rope,size_t index, std::stack<RopeN
 }
 
 /*
+    returns node that contains character at the given index,
+        putting nodes on the way in the stack, only when moving left
+            on error returns null
+*/
+RopeNode* _rope_node_at_index_trace_right(RopeNode &rope,size_t index, std::stack<RopeNode*> *nodeStack, size_t *local_index){
+    if(index == 0){
+        return rope_left_most_node_trace(rope, nodeStack);
+    }
+    //leaf
+    if(rope.left == nullptr && rope.right == nullptr){
+        if(index+1 > rope.weight){
+            PLOG_ERROR << "index bigger than weight, aborted. index : " << index;
+            return nullptr;
+        }
+        if(local_index != nullptr)
+            *local_index = index;
+        return &rope;
+    }
+    if(index + 1 > rope.weight){
+        return _rope_node_at_index_trace_right(*(rope.right), index-rope.weight, nodeStack, local_index);
+    }else{
+        nodeStack->push(&rope);
+        return _rope_node_at_index_trace_right(*(rope.left), index, nodeStack, local_index);
+    }
+}
+
+/*
     returns node that contains character at the given index;
             on error returns null
 */
 RopeNode* rope_node_at_index(RopeNode &rope,size_t index, size_t *local_index){
+    if(index == 0){
+        return rope_left_most_node(rope);
+    }
     //leaf
     if(rope.left == nullptr && rope.right == nullptr){
         if(index+1 > rope.weight){
@@ -756,29 +782,44 @@ RopeNode* rope_range(RopeNode& rope, size_t beginning, size_t end, size_t *local
     std::stack<RopeNode*> nodeStack;
     size_t localIndex=0;
     RopeNode *beginNode = rope_node_at_index_trace(rope, beginning, &nodeStack, &localIndex);
-    //go up the stack while localInde+end-start is bigger than weight
+    if(beginNode == nullptr){
+        PLOG_ERROR << "couldn't find node at index: " << beginning << " ,aborted.";
+        return nullptr;
+    }
+    //go up the stack subtracting right side frome range
     RopeNode *current = beginNode;
-    while(!(current->weight > (localIndex+(end-beginning)))){
+    RopeNode *previous = current;
+    int32_t range = end - (beginning-localIndex);
+    //leaf
+    if(beginNode->weight >= range){
+        *localIndexStart = beginning - localIndex;
+        return beginNode;
+    }
+    while(range > 0){
         if(!nodeStack.empty()){
             current = nodeStack.top();
-            nodeStack.pop();
+            nodeStack.pop();//if left up, diff between weights is childs right side weight
+            if(current->left.get() == previous){
+                range -= current->weight - previous->weight;
+            }
+            previous = current;
         }else{
             PLOG_ERROR << "range not found.";
             return nullptr;
         }
     }
     //count localIndexStart
-    ///localIndexStart = rope_left_most_node_index(current)
     RopeNode *prev ,*c;
     prev = c  = current;
     (*localIndexStart) = 0;
     while(!nodeStack.empty()){
         c = nodeStack.top();
         nodeStack.pop();
-        //if right child, add to LIS
+        //if right child, add to lIS
         if(c->right.get() == prev){
             (*localIndexStart) += c->weight;
         }
+        prev = c;
     }
     (*localIndexStart) = (*localIndexStart)==0?0:(*localIndexStart)-1;//index from 0
     return current;
@@ -809,7 +850,7 @@ std::string rope_dot(const RopeNode &rope){
             nodeQueue.push(c->right.get());
 
         //
-        DOT << "\"" << c << "\"" << "[label=\"" + std::to_string(c->weight)+"\n"+(c->text==nullptr?"":c->text.get())+"\"];\n";
+        DOT << "\"" << c << "\"" << "[label=\"" + std::to_string(c->weight)+"\n"+((c->text==nullptr)||true?"":c->text.get())+"\"];\n";
         if(c->left)
             DOT << "\"" << c << "\"" << "--" << "\"" << c->left.get() << "\"" << "\n";
         if(c->right)

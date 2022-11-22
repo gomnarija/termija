@@ -97,6 +97,7 @@ RopeLeafIterator::RopeLeafIterator(RopeNode *rope, size_t start){
         return;
     }
     //find node at index
+    localStartIndex = 0;
     current = _rope_node_at_index_trace_right(*rope, start, &nodeStack, &localStartIndex);
 }
 RopeNode* RopeLeafIterator::next(){
@@ -804,8 +805,9 @@ RopeNode* rope_range(RopeNode& rope, size_t beginning, size_t end, size_t *local
             }
             previous = current;
         }else{
-            PLOG_ERROR << "range not found.";
-            return nullptr;
+            //whole rope
+            (*localIndexStart) = 0;
+            return current;
         }
     }
     //count localIndexStart

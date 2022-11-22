@@ -31,10 +31,7 @@ Pane::Pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height) :
     topY{topY},
     width{width},
     height{height},
-    textMargin{1},
-    fontWidth{DEFAULT_FONT_WIDTH},
-    fontHeight{DEFAULT_FONT_HEIGHT},
-    fontSpacing{DEFAULT_FONT_SPACING}{
+    textMargin{1}{
 
     //rope
     this->ropes.push_back(std::move(rope_create_empty()));
@@ -268,11 +265,4 @@ void tra_position_cursor(Pane *pane, uint16_t x, uint16_t y){
     pane->cursor.x = x;
     pane->cursor.y = y;
 }
-
-
-void tra_set_font_size(Pane& pane, uint8_t width, uint8_t height){
-    pane.fontWidth = width;
-    pane.height = height;
-}
-
 }

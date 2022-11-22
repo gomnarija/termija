@@ -15,7 +15,10 @@ Termija::Termija() :
     screenWidth{0},
     screenHeight{0},
     paneMargin{0},
-    currentPane{nullptr}{}
+    currentPane{nullptr},
+    fontWidth{0},
+    fontHeight{0},
+    fontSpacing{0}{}
 
 
 
@@ -36,11 +39,21 @@ void tra_terminate(){
 }
 
 void tra_init_termija(){
-    tra_init_termija(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, DEFAULT_WINDOW_NAME, DEFAULT_PANE_MARGIN);
+    //config
+    if(!configLoaded){
+        tra_default_config();
+    }
+
+    tra_init_termija(tra_get_window_width(), tra_get_window_height(), tra_get_window_title().c_str(), tra_get_pane_margin());
 }
 
 void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * windowTitle){
-    tra_init_termija(screenWidth, screenHeight, windowTitle, DEFAULT_PANE_MARGIN);
+    //config
+    if(!configLoaded){
+        tra_default_config();
+    }
+
+    tra_init_termija(screenWidth, screenHeight, windowTitle, tra_get_pane_margin());
 }
 
 void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * windowTitle,uint8_t paneMargin){
@@ -48,6 +61,11 @@ void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * wi
 
     //plog
     plog::init(plog::debug, "termija.log");
+
+    //config
+    if(!configLoaded){
+        tra_default_config();
+    }
 
     //raylib
     InitWindow(screenWidth, screenHeight, windowTitle);
@@ -66,7 +84,10 @@ void tra_set_window_size(uint16_t width,uint16_t height){
 
     termija.screenWidth = width;
     termija.screenHeight = height;
-    SetWindowSize(width, height);
+
+    if(GetWindowHandle() != nullptr){
+        SetWindowSize(width, height);
+    }
 }
 
 size_t tra_get_window_width(){
@@ -85,7 +106,10 @@ void tra_set_window_title(const char *windowTitle){
     Termija& termija = Termija::instance();
 
     termija.windowTitle = std::string(windowTitle);
-    SetWindowTitle(windowTitle);
+
+    if(GetWindowHandle() != nullptr){
+        SetWindowTitle(windowTitle);
+    }
 }
 
 std::string tra_get_window_title(){
@@ -95,7 +119,9 @@ std::string tra_get_window_title(){
 }
 
 void tra_set_fps(uint16_t targetFPS){
-    SetTargetFPS(targetFPS);
+    if(GetWindowHandle() != nullptr){
+        SetTargetFPS(targetFPS);
+    }
 }
 
 void tra_set_pane_margin(uint8_t paneMargin){
@@ -202,6 +228,10 @@ void tra_set_current_pane(Pane* pane){
     }
 }
 
+void tra_load_font(){
+    const Termija& termija = Termija::instance();
+    tra_load_font(termija.fontPath.c_str(), termija.fontHeight, DEFAULT_TTF_GLYPH_COUNT);
+}
 void tra_load_font(const char *fontPath, uint8_t fontSize, uint16_t glyphCount){
     if(fontPath == nullptr){
         PLOG_ERROR << "given path is NULL, aborted.";
@@ -213,9 +243,6 @@ void tra_load_font(const char *fontPath, uint8_t fontSize, uint16_t glyphCount){
     if(termija.font->glyphCount == 0){
         PLOG_ERROR << "failed to load font: " << fontPath;
         return;
-    }
-    for(int i =0;i<termija.font->glyphCount;i++){
-        std::cout << termija.font->recs[i].width << "\n";
     }
 }
 

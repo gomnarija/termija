@@ -17,11 +17,17 @@ inline const uint16_t            DEFAULT_SCREEN_WIDTH    = 800;
 inline const uint16_t            DEFAULT_SCREEN_HEIGHT   = 600;
 inline const char               *DEFAULT_WINDOW_NAME     = "termija";
 inline const uint16_t            DEFAULT_TARGET_FPS      = 60;
-inline const uint8_t             DEFAULT_PANE_MARGIN     = 30;
+inline const uint8_t             DEFAULT_PANE_MARGIN     = 3;
 
+inline const char               *DEFAULT_FONT_PATH        = "res/fonts/unscii-16-full.ttf";
 inline const uint8_t             DEFAULT_FONT_WIDTH       = 8;
 inline const uint8_t             DEFAULT_FONT_HEIGHT      = 16;
 inline const uint8_t             DEFAULT_FONT_SPACING     = 1;
+inline const uint8_t             DEFAULT_TTF_GLYPH_COUNT  = 95;
+
+
+
+extern bool configLoaded;
 
 
 
@@ -67,9 +73,6 @@ public:
     uint16_t                width;
     uint16_t                height;
     uint8_t                 textMargin;//non-zero
-    uint8_t                 fontWidth;
-    uint8_t                 fontHeight;
-    uint8_t                 fontSpacing;
 
 
     Pane(uint16_t,uint16_t,uint16_t,uint16_t);
@@ -116,6 +119,12 @@ class Termija final{
         std::string                         windowTitle;
         uint8_t                             paneMargin;
         std::unique_ptr<Font>               font;
+
+    public:
+        std::string                         fontPath;
+        uint8_t                             fontWidth;
+        uint8_t                             fontHeight;
+        uint8_t                             fontSpacing;
 
     public:
         friend void             tra_set_window_size(const uint16_t, const uint16_t);
@@ -199,16 +208,22 @@ void        tra_draw_pane_border(const Pane&);
 
 
 //font
+void        tra_load_font();
 void        tra_load_font(const char*, uint8_t, uint16_t);
 Font*       tra_get_font();
 
+//config
+void        tra_load_config(const char *);
+void        tra_default_config();
 
 inline const uint16_t tra_get_text_width(const Pane& pane){
-    return ((pane.width - (2*(pane.textMargin))) / (pane.fontWidth+pane.fontSpacing));
+    const Termija& termija = Termija::instance();
+    return ((pane.width - (2*(pane.textMargin))) / (termija.fontWidth+termija.fontSpacing));
 }
 
 inline const uint16_t tra_get_text_height(const Pane& pane){
-    return ((pane.height - (2*(pane.textMargin))) / pane.fontHeight);
+    const Termija& termija = Termija::instance();
+    return ((pane.height - (2*(pane.textMargin))) / termija.fontHeight);
 }
 
 };

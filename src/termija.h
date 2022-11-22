@@ -58,6 +58,7 @@ struct Pane final{
 private:
 
     std::vector<std::unique_ptr<RopeNode>>          ropes;
+    size_t                                          currentRopeIndex;
     RopeNode                                       *rope;
     std::stack<char>                                inputStack;
     Cursor                                          cursor;
@@ -84,6 +85,7 @@ public:
     friend Pane*            tra_split_pane_horizontally(Pane &,uint16_t);
     friend Pane*            tra_merge_panes(Pane &, Pane &);
     friend RopeFlags*       tra_insert_text_at_cursor(Pane&,const char*);
+    friend RopeFlags*       tra_insert_text_line_at_cursor(Pane&,const char*);
     friend void             tra_pane_destroy_rope(Pane &);
     friend void             tra_draw_pane(const Pane &);
     friend void             tra_draw_pane_border(const Pane &);
@@ -102,6 +104,7 @@ Pane*                       tra_split_pane_vertically(Pane &,uint16_t);
 Pane*                       tra_split_pane_horizontally(Pane &,uint16_t);
 Pane*                       tra_merge_panes(Pane &, Pane &);
 RopeFlags*                  tra_insert_text_at_cursor(Pane&,const char*);
+RopeFlags*                  tra_insert_text_line_at_cursor(Pane&,const char*);
 void                        tra_pane_destroy_rope(Pane &); 
 void                        tra_position_pane_frame(Pane &pane);
 void                        tra_move_cursor_up(Pane *, uint16_t);

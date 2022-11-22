@@ -258,6 +258,9 @@ void rope_prepend(RopeNode *rope,std::unique_ptr<RopeNode> prope){
     //push text to the new right node
     left_most->right = left_most->text==nullptr?nullptr:rope_create_node(left_most->text.get());
     left_most->text.release();
+    //move flags to the new right node
+    if(left_most->right != nullptr)
+        left_most->right->flags.swap(left_most->flags);
     //go up the stack changing weight
     RopeNode *current;
     while(!nodeStack.empty()){
@@ -289,6 +292,8 @@ void rope_append(RopeNode *rope,std::unique_ptr<RopeNode> prope){
     //push text to the new left node
     right_most->left = rope_create_node(right_most->text.get());
     right_most->text.release();
+    //move flags to the creates node
+    right_most->left->flags.swap(right_most->flags);
     //go up the stack changing weight
     RopeNode *current, *prev=right_most;
     while(!nodeStack.empty()){
@@ -405,7 +410,7 @@ size_t rope_height_measure(const RopeNode &rope){
         return 0;
 
     size_t left_height = rope.left != nullptr ?  rope_height_measure(*(rope.left)) : 0;
-    size_t right_height = rope.left != nullptr ?  rope_height_measure(*(rope.left)) : 0;
+    size_t right_height = rope.right != nullptr ?  rope_height_measure(*(rope.right)) : 0;
     return 1 + std::max(left_height, right_height);
 }
 

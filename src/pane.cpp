@@ -35,7 +35,8 @@ Pane::Pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height) :
 
     //rope
     this->ropes.push_back(std::move(rope_create_empty()));
-    this->rope = this->ropes[0].get();
+    this->currentRopeIndex = 0;
+    this->rope = this->ropes[this->currentRopeIndex].get();
 
     //frame
     this->frame.nodeStart = this->rope;
@@ -127,7 +128,7 @@ RopeFlags* tra_insert_text_at_cursor(Pane& pane,const char* text){
         PLOG_ERROR << "given text is NULL, aborted";
         return nullptr;
     }
-    //insert at local index inside frame
+    //local index inside frame
     size_t localIndex = pane.cursor.index - pane.frame.localIndexStart;
     size_t weight = rope_weight_measure(*(pane.frame.nodeStart));
     if(localIndex >= weight && weight != 0){
@@ -142,11 +143,60 @@ RopeFlags* tra_insert_text_at_cursor(Pane& pane,const char* text){
         PLOG_ERROR << "couldn't find node at index.";
         return nullptr;
     }
+    //rope rebalance
+    if(!rope_is_balanced(*(pane.rope))){
+        pane.ropes[pane.currentRopeIndex] = rope_rebalance(std::move(pane.ropes[pane.currentRopeIndex]));
+        pane.rope = pane.ropes[pane.currentRopeIndex].get();
+        pane.frame.nodeStart = pane.rope;
+    }
     // cursor
     tra_move_cursor_up(&pane, strlen(text));
     tra_position_pane_frame(pane);
+
     return node->flags.get();
 }
+
+/*
+    inserts line of text
+*/
+RopeFlags* tra_insert_text_line_at_cursor(Pane& pane,const char* text){
+    if(text == nullptr){
+        PLOG_ERROR << "given text is NULL, aborted";
+        return nullptr;
+    }
+    //local index inside frame
+    size_t localIndex = pane.cursor.index - pane.frame.localIndexStart;
+    size_t weight = rope_weight_measure(*(pane.frame.nodeStart));
+    if(localIndex >= weight && weight != 0){
+        PLOG_ERROR << "invalid cursor index, aborted.";
+        return nullptr;
+    }
+    //insert text at index
+    rope_insert_at(pane.frame.nodeStart, localIndex, text);
+    weight = rope_weight_measure_set(pane.rope);
+    RopeNode *node = rope_node_at_index(*(pane.frame.nodeStart), localIndex + 1, NULL);
+    if(node == nullptr){
+        PLOG_ERROR << "couldn't find node at index.";
+        return nullptr;
+    }
+    //rope rebalance
+    if(!rope_is_balanced(*(pane.rope))){
+        pane.ropes[pane.currentRopeIndex] = rope_rebalance(std::move(pane.ropes[pane.currentRopeIndex]));
+        pane.rope = pane.ropes[pane.currentRopeIndex].get();
+        pane.frame.nodeStart = pane.rope;
+    }
+    // cursor
+    tra_move_cursor_up(&pane, strlen(text));
+    tra_position_pane_frame(pane);
+    //add additional weight until end of current line
+    size_t weightUntilEnd = tra_get_text_width(pane) - pane.cursor.x;
+    rope_add_additional_weight_at(pane.frame.nodeStart, localIndex+1, 0, weightUntilEnd);
+    // cursor again for postWeight
+    tra_move_cursor_up(&pane, weightUntilEnd);
+    tra_position_pane_frame(pane);
+    return node->flags.get();
+}
+
 
 void tra_pane_destroy_rope(Pane& pane){
    for(size_t i=0;i<pane.ropes.size();i++) 
@@ -198,7 +248,7 @@ void tra_move_cursor_up(Pane *pane, uint16_t  diff){
     pane->cursor.index = pane->cursor.index==0?diff-1:pane->cursor.index+diff;
     pane->cursor.y += (diff/textWidth);
     uint16_t leftover = diff%textWidth;
-    if(leftover > (textWidth - pane->cursor.x)){
+    if(leftover >= (textWidth - pane->cursor.x)){
         pane->cursor.x = leftover - (textWidth - pane->cursor.x);
         pane->cursor.y ++;
     }else if(leftover < (textWidth - pane->cursor.x)){
@@ -232,7 +282,7 @@ void tra_move_cursor_down(Pane *pane, uint16_t  diff){
     pane->cursor.index -= diff;
     pane->cursor.y -= (diff/textWidth);
     uint16_t leftover = diff%textWidth;
-    if(leftover > pane->cursor.x){
+    if(leftover >= pane->cursor.x){
         pane->cursor.x = textWidth - (leftover - pane->cursor.x);
         pane->cursor.y --;
     }else{

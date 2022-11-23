@@ -3,6 +3,11 @@
 #include <termija.h>
 
 
+TEST_CASE( "Termija default init" ){
+    termija::tra_init_termija();
+}
+
+
 TEST_CASE( "Pane splitted vertically", "[tra_split_pane_vertically]" ) {
     
     SECTION("splitting pane vertically"){
@@ -69,21 +74,25 @@ TEST_CASE( "Pane merged", "[tra_merge_panes]" ) {
 
 TEST_CASE( "Cursor move", "[tra_move_cursor]" ) {
     
-    SECTION("merging panes"){
+    SECTION("moving cursor"){
+        //font size 8x16
         termija::tra_set_pane_margin(3);
-        std::string text(3000, 'm');
+        std::string text(3003, 'm');
         termija::Pane *top = termija::tra_add_pane(0, 0, 500, 500);
         termija::tra_insert_text_at_cursor(*top, text.c_str());
+        const size_t textWidth = termija::tra_get_text_width(*top);
+        const size_t textHeight = termija::tra_get_text_height(*top);
+
 
         const termija::Cursor &c = termija::tra_get_cursor(*top);
 
-        REQUIRE(c.x == 12);
-        REQUIRE(c.y == 6);
+        REQUIRE(c.x == 3003%textWidth);
+        REQUIRE(c.y == textHeight-1);
 
         termija::tra_move_cursor_down(top, 1000);
 
-        REQUIRE(c.x == 8);
-        REQUIRE(c.y == 4);
+        REQUIRE(c.x == 2003%textWidth);
+        REQUIRE(c.y == textHeight-1 - (1000/textWidth));
 
         termija::tra_clear_panes();
     }
@@ -92,15 +101,17 @@ TEST_CASE( "Cursor move", "[tra_move_cursor]" ) {
 TEST_CASE( "Cursor positioned", "[tra_move_cursor]" ) {
     
     SECTION("positions cursor"){
+        //font size 8x16
         termija::tra_set_pane_margin(3);
-        std::string text(3000, 'm');
+        std::string text(3003, 'm');
         termija::Pane *top = termija::tra_add_pane(0, 0, 500, 500);
         termija::tra_insert_text_at_cursor(*top, text.c_str());
-
+        const size_t textWidth = termija::tra_get_text_width(*top);
+        const size_t textHeight = termija::tra_get_text_height(*top);
         const termija::Cursor &c = termija::tra_get_cursor(*top);
 
-        REQUIRE(c.x == 12);
-        REQUIRE(c.y == 6);
+        REQUIRE(c.x == 3003%textWidth);
+        REQUIRE(c.y == textHeight-1);
 
         termija::tra_position_cursor(top, 15, 5);
 
@@ -111,21 +122,27 @@ TEST_CASE( "Cursor positioned", "[tra_move_cursor]" ) {
     }
     
     SECTION("positions cursor invalid coordinates"){
+        //font size 8x16
         termija::tra_set_pane_margin(3);
-        std::string text(3000, 'm');
+        std::string text(64, 'm');
         termija::Pane *top = termija::tra_add_pane(0, 0, 500, 500);
         termija::tra_insert_text_at_cursor(*top, text.c_str());
-
+        const size_t textWidth = termija::tra_get_text_width(*top);
+        const size_t textHeight = termija::tra_get_text_height(*top);
         const termija::Cursor &c = termija::tra_get_cursor(*top);
 
-        REQUIRE(c.x == 12);
-        REQUIRE(c.y == 6);
+        REQUIRE(c.x == 64%textWidth);
+        REQUIRE(c.y == 64/textWidth);
 
         termija::tra_position_cursor(top, 13, 6);
 
-        REQUIRE(c.x == 12);
-        REQUIRE(c.y == 6);
+        REQUIRE(c.x == 64%textWidth);
+        REQUIRE(c.y == 64/textWidth);
 
         termija::tra_clear_panes();
     }
+}
+
+TEST_CASE( "Termija terminate" ){
+    termija::tra_terminate();
 }

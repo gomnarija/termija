@@ -42,6 +42,20 @@ Pane::Pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height) :
     this->frame.nodeStart = this->rope;
 }
 
+void tra_update_pane(Pane& pane){
+
+    //update widgets
+    for(size_t i = 0; i < pane.widgets.size(); i++){
+        Widget *widget = pane.widgets[i].get();
+        if(widget == nullptr){
+            PLOG_ERROR << "widget at index: " << i << " is NULL, skipped.";
+            continue;
+        }
+        widget->update();
+    }
+}
+
+
 Pane* tra_split_pane_vertically(Pane &pane){
     return tra_split_pane_vertically(pane, (pane.width /2));
 }
@@ -171,8 +185,14 @@ RopeFlags* tra_insert_text_line_at_cursor(Pane& pane,const char* text){
         PLOG_ERROR << "invalid cursor index, aborted.";
         return nullptr;
     }
-    //insert text at index
-    rope_insert_at(pane.frame.nodeStart, localIndex, text);
+    //postWeight = weight until end of the line
+    uint16_t textWidth = tra_get_text_width(pane);
+    if(textWidth == 0){
+        PLOG_ERROR << "couln't get textWidth, aborted.";
+    }
+    size_t weightUntilEnd = textWidth - ((pane.cursor.x + strlen(text)) % textWidth);
+    //insert node at index
+    rope_insert_at(pane.frame.nodeStart, localIndex, rope_create_node(text, 0, weightUntilEnd, 0));
     weight = rope_weight_measure_set(pane.rope);
     RopeNode *node = rope_node_at_index(*(pane.frame.nodeStart), localIndex + 1, NULL);
     if(node == nullptr){
@@ -186,14 +206,11 @@ RopeFlags* tra_insert_text_line_at_cursor(Pane& pane,const char* text){
         pane.frame.nodeStart = pane.rope;
     }
     // cursor
-    tra_move_cursor_up(&pane, strlen(text));
+    tra_move_cursor_up(&pane, strlen(text) + weightUntilEnd);
     tra_position_pane_frame(pane);
-    //add additional weight until end of current line
-    size_t weightUntilEnd = tra_get_text_width(pane) - pane.cursor.x;
-    rope_add_additional_weight_at(pane.frame.nodeStart, localIndex+1, 0, weightUntilEnd);
-    // cursor again for postWeight
-    tra_move_cursor_up(&pane, weightUntilEnd);
-    tra_position_pane_frame(pane);
+    //create line widget
+    pane.widgets.push_back(std::make_unique<Line>(node, strlen(text) + weightUntilEnd));
+    //return created nodes flags
     return node->flags.get();
 }
 
@@ -210,6 +227,10 @@ void tra_position_pane_frame(Pane &pane){
     size_t endRopeIndex = rope_weight_measure(*(pane.rope));
     size_t textWidth = tra_get_text_width(pane);
     size_t textHeight = tra_get_text_height(pane);
+    if(textWidth == 0 || textHeight == 0){
+        PLOG_ERROR << "invalid textWidth|textHeight, aborted";
+        return;
+    }
     endRopeIndex = endRopeIndex == 0 ? endRopeIndex : endRopeIndex - 1;
     //length to and from cursor
     uint16_t preLength = (textWidth * (pane.cursor.y)) + pane.cursor.x;
@@ -244,6 +265,10 @@ void tra_move_cursor_up(Pane *pane, uint16_t  diff){
     }
     size_t textWidth = tra_get_text_width(*pane);
     size_t textHeight = tra_get_text_height(*pane);
+    if(textWidth == 0 || textHeight == 0){
+        PLOG_ERROR << "invalid textWidth|textHeight, aborted";
+        return;
+    }
     //move up
     pane->cursor.index = pane->cursor.index==0?diff-1:pane->cursor.index+diff;
     pane->cursor.y += (diff/textWidth);
@@ -277,6 +302,10 @@ void tra_move_cursor_down(Pane *pane, uint16_t  diff){
     }
     size_t textWidth = tra_get_text_width(*pane);
     size_t textHeight = tra_get_text_height(*pane);
+    if(textWidth == 0 || textHeight == 0){
+        PLOG_ERROR << "invalid textWidth|textHeight, aborted";
+        return;
+    }
     //move down
     diff = +diff;
     pane->cursor.index -= diff;
@@ -306,6 +335,10 @@ void tra_position_cursor(Pane *pane, uint16_t x, uint16_t y){
     }
     size_t textWidth = tra_get_text_width(*pane);
     size_t textHeight = tra_get_text_height(*pane);
+    if(textWidth == 0 || textHeight == 0){
+        PLOG_ERROR << "invalid textWidth|textHeight, aborted";
+        return;
+    }
     size_t avaliableLength = std::min(pane->cursor.index, textWidth * textHeight);
 
     if(((y * textWidth) + x) > avaliableLength){

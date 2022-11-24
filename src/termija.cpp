@@ -79,6 +79,25 @@ void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * wi
     termija.currentPane = tra_add_pane(paneMargin, paneMargin, screenWidth - 2*paneMargin, screenHeight - 2*paneMargin);
 }
 
+void tra_update(){
+    Termija& termija = Termija::instance();
+
+    //update panes
+    for(size_t i=0;i<termija.panes.size();i++){
+        Pane *pane = termija.panes[i].get();
+        if(pane == nullptr){
+            PLOG_ERROR << "pane at index: " << i << " is NULL, skipped.";
+            continue;
+        }
+        tra_update_pane(*pane);
+    }
+    
+    //draw
+    tra_draw();
+
+}
+
+
 void tra_set_window_size(uint16_t width,uint16_t height){
     Termija& termija = Termija::instance();
 

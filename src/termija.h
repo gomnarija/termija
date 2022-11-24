@@ -2,6 +2,7 @@
 #define TERMIJA_H
 
 #include "rope.h"
+#include "widget.h"
 #include "raylib.h"
 
 #include <string>
@@ -63,6 +64,7 @@ private:
     std::stack<char>                                inputStack;
     Cursor                                          cursor;
     PaneFrame                                       frame;
+    std::vector<std::unique_ptr<Widget>>            widgets;
 
 public:
     Pane*                   top;
@@ -80,7 +82,7 @@ public:
     Pane(const Pane&) = delete;
     Pane& operator=(const Pane&) = delete;
     
-    
+    friend void             tra_update_pane(Pane&);
     friend Pane*            tra_split_pane_vertically(Pane &,uint16_t);
     friend Pane*            tra_split_pane_horizontally(Pane &,uint16_t);
     friend Pane*            tra_merge_panes(Pane &, Pane &);
@@ -98,6 +100,7 @@ public:
 
 };
 
+void                        tra_update_pane(Pane&);
 Pane*                       tra_split_pane_vertically(Pane &);
 Pane*                       tra_split_pane_horizontally(Pane &);
 Pane*                       tra_split_pane_vertically(Pane &,uint16_t);
@@ -147,6 +150,7 @@ class Termija final{
     public:
         friend void             tra_init_termija(uint16_t screenWidth, uint16_t screenHeight,const char * windowTitle, uint8_t paneMargin); 
         friend void             tra_terminate();
+        friend void             tra_update();
         friend Pane*            tra_add_pane(uint16_t, uint16_t, uint16_t, uint16_t);
         friend void             tra_remove_pane(Pane *);
         friend void             tra_clear_panes();
@@ -177,12 +181,13 @@ class Termija final{
 };
 
 
-//termija 
+//termija
 Termija&    tra_get_instance();
 void        tra_terminate();
 void        tra_init_termija();
 void        tra_init_termija(uint16_t, uint16_t, const char *);
 void        tra_init_termija(uint16_t, uint16_t, const char *, uint8_t);
+void        tra_update();
 
 //window
 void        tra_set_window_size(const uint16_t, const uint16_t);
@@ -221,12 +226,12 @@ void        tra_default_config();
 
 inline const uint16_t tra_get_text_width(const Pane& pane){
     const Termija& termija = Termija::instance();
-    return ((pane.width - (2*(pane.textMargin))) / (termija.fontWidth+termija.fontSpacing));
+    return termija.fontWidth == 0 ? 0:((pane.width - (2*(pane.textMargin))) / (termija.fontWidth+termija.fontSpacing));
 }
 
 inline const uint16_t tra_get_text_height(const Pane& pane){
     const Termija& termija = Termija::instance();
-    return ((pane.height - (2*(pane.textMargin))) / termija.fontHeight);
+    return termija.fontHeight == 0 ? 0:((pane.height - (2*(pane.textMargin))) / termija.fontHeight);
 }
 
 };

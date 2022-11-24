@@ -146,10 +146,14 @@ std::unique_ptr<RopeNode> rope_create_empty(){
     return std::move(node);
 }
 
-/*
-    creates node with the given text
-*/
 std::unique_ptr<RopeNode> rope_create_node(const char* text){
+    return rope_create_node(text, 0, 0, 0);
+}
+
+/*
+    creates node with the given text and flags
+*/
+std::unique_ptr<RopeNode> rope_create_node(const char* text, size_t preWeight, size_t postWeight, std::bitset<8> effects){
     if(text == nullptr){
         PLOG_ERROR << "given text is NULL, aborted.";
         return nullptr;
@@ -158,6 +162,10 @@ std::unique_ptr<RopeNode> rope_create_node(const char* text){
     //add text
     node->text = std::make_unique<char[]>(strlen(text) + 1);
     node->weight = sprintf(node->text.get(), "%s", text);
+    //flags
+    node->flags->preWeight = preWeight;
+    node->flags->postWeight = postWeight;
+    node->flags->effects = effects;
     //cut while too long
     RopeNode *n  = node.get();
     while(n->weight > MAX_WEIGHT){

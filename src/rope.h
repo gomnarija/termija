@@ -88,6 +88,7 @@ public:
 
 std::unique_ptr<RopeNode>       rope_create_empty();
 std::unique_ptr<RopeNode>       rope_create_node(const char*);
+std::unique_ptr<RopeNode>       rope_create_node(const char*, size_t, size_t, std::bitset<8>);
 std::unique_ptr<RopeNode>       rope_create(const char*);
 void                            rope_destroy(std::unique_ptr<RopeNode>);
 std::unique_ptr<RopeNode>       rope_concat(std::unique_ptr<RopeNode>,const char*);

@@ -58,6 +58,8 @@ struct Cursor final{
 struct Pane final{
 private:
 
+    uint16_t                                        oldWidth;
+    uint16_t                                        oldHeight;
     std::vector<std::unique_ptr<RopeNode>>          ropes;
     size_t                                          currentRopeIndex;
     RopeNode                                       *rope;
@@ -86,15 +88,15 @@ public:
     friend Pane*            tra_split_pane_vertically(Pane &,uint16_t);
     friend Pane*            tra_split_pane_horizontally(Pane &,uint16_t);
     friend Pane*            tra_merge_panes(Pane &, Pane &);
+    friend void             tra_pane_is_resized(Pane &, int16_t, int16_t);
     friend RopeFlags*       tra_insert_text_at_cursor(Pane&,const char*);
     friend RopeFlags*       tra_insert_text_line_at_cursor(Pane&,const char*);
     friend void             tra_pane_destroy_rope(Pane &);
     friend void             tra_draw_pane(const Pane &);
     friend void             tra_draw_pane_border(const Pane &);
     friend void             tra_position_pane_frame(Pane &pane);
-    friend void             tra_move_cursor_up(Pane *, uint16_t);
-    friend void             tra_move_cursor_down(Pane *, uint16_t);
-    friend void             tra_position_cursor(Pane *, uint16_t, uint16_t);
+    friend void             tra_position_cursor(Pane &, uint16_t, uint16_t);
+    friend void             tra_position_cursor(Pane &, size_t);
     friend const Cursor&    tra_get_cursor(Pane&);
     friend void             tra_set_font_size(Pane&, uint8_t, uint8_t);
 
@@ -106,13 +108,13 @@ Pane*                       tra_split_pane_horizontally(Pane &);
 Pane*                       tra_split_pane_vertically(Pane &,uint16_t);
 Pane*                       tra_split_pane_horizontally(Pane &,uint16_t);
 Pane*                       tra_merge_panes(Pane &, Pane &);
+void                        tra_pane_is_resized(Pane &, int16_t, int16_t);
 RopeFlags*                  tra_insert_text_at_cursor(Pane&,const char*);
 RopeFlags*                  tra_insert_text_line_at_cursor(Pane&,const char*);
 void                        tra_pane_destroy_rope(Pane &); 
 void                        tra_position_pane_frame(Pane &pane);
-void                        tra_move_cursor_up(Pane *, uint16_t);
-void                        tra_move_cursor_down(Pane *, uint16_t);
-void                        tra_position_cursor(Pane *, uint16_t, uint16_t);
+void                        tra_position_cursor(Pane &, uint16_t, uint16_t);
+void                        tra_position_cursor(Pane &, size_t);
 const Cursor&               tra_get_cursor(Pane&);
 void                        tra_set_font_size(Pane&, uint8_t, uint8_t);
 

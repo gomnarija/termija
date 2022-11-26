@@ -739,6 +739,11 @@ void rope_add_additional_weight_at(RopeNode *rope, size_t index, uint16_t preWei
 
     RopeNode *node = rope_node_at_index(*rope, index, NULL);
 
+    if(node == nullptr){
+        PLOG_ERROR << "couldn't find node at index: " << index << " aborted.";
+        return;
+    }
+
     node->flags->preWeight = preWeight;
     node->flags->postWeight = postWeight;
     rope_weight_measure_set(rope);

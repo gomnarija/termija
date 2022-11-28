@@ -27,6 +27,7 @@ void                                            _split_node(RopeNode*, size_t, s
 std::vector<std::unique_ptr<RopeNode>>          _harvest(std::unique_ptr<RopeNode>);
 std::unique_ptr<RopeNode>                       _merge(std::vector<std::unique_ptr<RopeNode>>*, size_t, size_t);
 RopeNode*                                       _rope_node_at_index_trace_right(RopeNode &,size_t, std::stack<RopeNode*> *, size_t *);
+size_t                                          _rope_measure_whole(RopeNode &);
 
 RopeFlags::RopeFlags()
 : preWeight{0}, postWeight{0}, effects{0}
@@ -133,6 +134,53 @@ RopeNode* RopeLeafIterator::pop(){
     next();
     return prev;
 }
+
+RopeLeafIteratorBack::RopeLeafIteratorBack(RopeNode *rope, size_t start){
+    if(rope == nullptr){
+        PLOG_ERROR << "given rope is NULL, aborted.";
+        return;
+    }
+    //find node at index
+    localStartIndex = 0;
+    current = rope_node_at_index_trace(*rope, start, &nodeStack, &localStartIndex);
+}
+RopeNode* RopeLeafIteratorBack::next(){
+    if(!hasNext()){
+        PLOG_WARNING << "there is no previous element, aborted.";
+        return nullptr;
+    }
+
+    RopeNode *parent = nodeStack.top();
+    nodeStack.pop();
+    current = rope_node_at_index_trace(*(parent), parent->weight - 1, &nodeStack, NULL);
+    return current;
+}
+bool RopeLeafIteratorBack::hasNext(){
+    bool has_left_child = false;
+    RopeNode *parent;
+    RopeNode *prev=current;
+    while(!nodeStack.empty() && !(has_left_child)){
+        parent = nodeStack.top();
+        nodeStack.pop();
+        has_left_child = parent->left != nullptr && (parent->left.get() != prev);
+        prev = parent;
+    }
+    if(has_left_child)
+        nodeStack.push(parent);
+    return has_left_child;
+}
+RopeNode* RopeLeafIteratorBack::pop(){
+    if(!hasNext()){
+        RopeNode *prev = current;
+        current = nullptr;
+        return prev;
+    }
+    RopeNode *prev = current;
+    next();
+    return prev;
+}
+
+
 size_t RopeLeafIterator::local_start_index(){
     return this->localStartIndex;
 }
@@ -257,18 +305,19 @@ void rope_prepend(RopeNode *rope,std::unique_ptr<RopeNode> prope){
         return;
     }
     std::stack<RopeNode*> nodeStack;
-    size_t prope_weight = prope->weight;
     //get left-most leaf
     RopeNode *left_most = rope_left_most_node_trace(*rope, &nodeStack);
     //prepend the given rope
     left_most->left.swap(prope);
-    left_most->weight = prope_weight;
     //push text to the new right node
     left_most->right = left_most->text==nullptr?nullptr:rope_create_node(left_most->text.get());
     left_most->text.release();
     //move flags to the new right node
     if(left_most->right != nullptr)
         left_most->right->flags.swap(left_most->flags);
+    //weight
+    rope_weight_measure_set(left_most);
+    uint16_t prope_weight = left_most->weight;
     //go up the stack changing weight
     RopeNode *current;
     while(!nodeStack.empty()){
@@ -292,7 +341,7 @@ void rope_append(RopeNode *rope,std::unique_ptr<RopeNode> prope){
         return;
     }
     std::stack<RopeNode*> nodeStack;
-    size_t prope_weight = prope->weight;
+    size_t prope_weight = _rope_measure_whole(*prope);
     //get right-most leaf
     RopeNode *right_most = rope_node_at_index_trace(*rope, rope->weight-1, &nodeStack, NULL);
     //append the given rope
@@ -408,6 +457,29 @@ size_t rope_weight_measure_set(RopeNode *rope){
     rope->left->weight = rope_weight_measure_set(rope->left.get());
     rope->weight = rope->left->weight + right_side;
     return rope->weight;
+}
+
+size_t _rope_measure_whole(RopeNode &rope){
+    //leaf, measure it's weight
+    if(rope.left == nullptr && rope.right == nullptr){
+        size_t length = rope.text != nullptr ? strlen(rope.text.get()):0;
+        return length + rope.flags->preWeight + rope.flags->postWeight;
+    }
+    //weight = weight(left) + weight(left->rightside) + weight(rightside)
+    RopeNode *curr_right = rope.left->right.get();
+    size_t right_side = 0;
+    while(curr_right != nullptr){
+        right_side += rope_weight_measure(*curr_right);
+        curr_right = curr_right->right.get();
+    }
+    curr_right = rope.right.get();
+    while(curr_right != nullptr){
+        right_side += rope_weight_measure(*curr_right);
+        curr_right = curr_right->right.get();
+    }
+
+    return rope_weight_measure(*(rope.left)) + right_side;
+
 }
 
 /*
@@ -727,6 +799,33 @@ RopeNode* rope_left_most_node(RopeNode &rope){
     else
         return rope_left_most_node(*(rope.left));
 }
+
+/*
+    returns right-most node in the given rope,
+        putting nodes on the way in the stack,
+            on error returns null
+*/
+RopeNode* rope_right_most_node_trace(RopeNode &rope, std::stack<RopeNode*> *nodeStack){
+    if(rope.right == nullptr){
+        return &rope;
+    }
+    else{
+        nodeStack->push(&rope);
+        return rope_right_most_node_trace(*(rope.left), nodeStack);
+    }
+}
+
+/*
+    returns right-most node in the given rope;
+            on error returns null
+*/
+RopeNode* rope_right_most_node(RopeNode &rope){
+    if(rope.right == nullptr)
+        return &rope;
+    else
+        return rope_right_most_node(*(rope.left));
+}
+
 
 /*
     set pre/post weight to node at given index; measure sets rope weight

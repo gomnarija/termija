@@ -70,19 +70,28 @@ public:
 };
 
 class RopeLeafIterator  :   public RopeIterator{
-private:
+protected:
     std::stack<RopeNode*>   nodeStack;
     size_t                  localStartIndex;
-
+    explicit                RopeLeafIterator() : localStartIndex{0}{}
 public:
 
 
     explicit RopeLeafIterator(RopeNode *rope, size_t start = 0);
 
+    RopeNode* next() override;
+    bool      hasNext() override;
+    RopeNode* pop() override;
+    size_t    local_start_index();
+};
+
+class RopeLeafIteratorBack  :   public RopeLeafIterator{
+public:
+    explicit RopeLeafIteratorBack(RopeNode *rope, size_t start = 0);
+
     RopeNode* next() override final;
     bool      hasNext() override final;
     RopeNode* pop() override final;
-    size_t    local_start_index();
 };
 
 
@@ -110,6 +119,8 @@ RopeNode*                       rope_node_at_index_trace(RopeNode&,size_t,std::s
 RopeNode*                       rope_node_at_index(RopeNode&,size_t,size_t*);
 RopeNode*                       rope_left_most_node_trace(RopeNode&,std::stack<RopeNode*>*);
 RopeNode*                       rope_left_most_node(RopeNode&);
+RopeNode*                       rope_right_most_node_trace(RopeNode&,std::stack<RopeNode*>*);
+RopeNode*                       rope_right_most_node(RopeNode&);
 void                            rope_add_additional_weight_at(RopeNode *, size_t, uint16_t, uint16_t);
 void                            rope_pre_weight_rebalance(RopeFlags *, uint16_t );
 void                            rope_post_weight_rebalance(RopeFlags *, uint16_t );

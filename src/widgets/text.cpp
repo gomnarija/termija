@@ -8,16 +8,15 @@
 
 namespace termija{
 
-Text::Text(uint16_t x, uint16_t y, const char *text):
-x{x},
-y{y},
-textWidth{0},
-text{nullptr}{
+Text::Text(const uint16_t x,const uint16_t y, const char *text):
+textWidth{0}{
     if(text == nullptr){
         PLOG_ERROR << "given text is NULL, aborted.";
         return;
     }  
-
+    //coords
+    this->x = x;
+    this->y = y;
     //create rope
     this->text = rope_create(text);
 }
@@ -27,7 +26,7 @@ void Text::update(){
 
 }
 
-void Text::draw(uint16_t startX, uint16_t startY, uint16_t textWidth, uint16_t textHeight){
+void Text::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
     if(this->text == nullptr){
         PLOG_ERROR << "text is NULL, aborted.";
         return;
@@ -43,7 +42,7 @@ void Text::draw(uint16_t startX, uint16_t startY, uint16_t textWidth, uint16_t t
                 std::min((this->x + actualTextWidth), (int)textWidth), std::min((uint16_t)(this->y + this->lines()),textHeight), 0);
 }
 
-void Text::on_pane_resize(int16_t widthDiff, int16_t heightDiff){
+void Text::on_pane_resize(const int16_t paneTextWidth,const int16_t paneTextHeight){
     //TODO
 }
 
@@ -51,6 +50,19 @@ Text::~Text(){
     if(this->text != nullptr){
         rope_destroy(std::move(this->text));
     }
+}
+
+uint16_t Text::getX() const{
+    return this->x;
+}
+
+uint16_t Text::getY() const{
+    return this->y;
+}
+
+void Text::setPosition(const uint16_t x,const uint16_t y){
+    this->x = x;
+    this->y = y;
 }
 
 uint16_t Text::length(){
@@ -62,7 +74,7 @@ uint16_t Text::lines(){
     return (this->length() / actualTextWidth) + ((this->length()%actualTextWidth)>0?1:0);
 }
 
-void Text::setTextWidth(uint16_t textWith){
+void Text::setTextWidth(const uint16_t textWith){
     this->textWidth = textWidth;
 }
 
@@ -80,12 +92,12 @@ void Text::setText(const char *text){
     this->text = rope_create(text);
 }
 
-void Text::insertAt(const char *text, size_t index){
+void Text::insertAt(const char *text,const size_t index){
     //insert given text at index
     rope_insert_at(this->text.get(), index, text);
 }
 
-void Text::deleteAt(size_t index, uint16_t length){
+void Text::deleteAt(const size_t index,const uint16_t length){
     //delete text of given length at given index
     rope_delete_at(this->text.get(), index, length);
 }

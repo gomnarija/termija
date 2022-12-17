@@ -21,6 +21,33 @@ void tra_draw_pane_border(const Pane& pane){
 }
 
 
+void tra_draw_cursor(uint16_t xPaneStart, uint16_t yPaneStart, Cursor &cursor){
+    if(!cursor.isDrawn){
+        return;
+    }
+    const Termija& termija = Termija::instance();
+    //get font
+    Font *font = tra_get_font();
+    if(font == nullptr){
+        PLOG_ERROR << "font not loaded, aborted.";
+        return;
+    }
+    uint8_t thickness = 4;
+    //draw if time allows
+    if((int)(cursor.blinkTimer / (1.0 / cursor.blinksPerSecond)) % 2 == 0){
+        //start position
+        Vector2 position{(float)xPaneStart+(cursor.x*(termija.fontWidth+termija.fontSpacing)), (float)yPaneStart+(cursor.y*(termija.fontHeight))};
+        //move to character bottom
+        position.y += termija.fontHeight - thickness;
+        DrawRectangle(position.x, position.y, termija.fontWidth+termija.fontSpacing, thickness, LIGHTGRAY);
+    }
+    cursor.blinkTimer += tra_delta_time();
+    //reset timer
+    if(cursor.blinkTimer > 1.0)
+        cursor.blinkTimer = 0;
+    
+}
+
 void _tra_draw_node_down(RopeNode *node, uint16_t &x, uint16_t &y, uint16_t xPaneStart, uint16_t yPaneStart, uint16_t xStart, uint16_t yStart, uint16_t textWidth, uint16_t textHeight, size_t startIndex){
     const Termija& termija = Termija::instance();
     //get font
@@ -29,7 +56,7 @@ void _tra_draw_node_down(RopeNode *node, uint16_t &x, uint16_t &y, uint16_t xPan
         PLOG_ERROR << "font not loaded, aborted.";
         return;
     }
-    if(startIndex >= node->weight - 1){
+    if(startIndex >= node->weight){
         return;
     }
     //whole or until end of frame
@@ -52,8 +79,9 @@ void _tra_draw_node_down(RopeNode *node, uint16_t &x, uint16_t &y, uint16_t xPan
             x=xStart;
         }
     }
-    //new line
-    if(node->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE){
+    //new line, only if not already at the star
+    if(x > xStart && (node->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE)){
+        x=xStart;
         y++;
     }
 }
@@ -73,7 +101,7 @@ void _tra_draw_text_down(RopeNode *rope, uint16_t xPaneStart, uint16_t yPaneStar
     RopeLeafIterator litrope(rope, cursor.index);
     RopeNode *current;//start from cursor xy
     uint16_t x=cursor.x,y=cursor.y;//initialStartIndex is length to starting index inside leaf
-    size_t initialStartIndex = litrope.local_start_index()+1;
+    size_t initialStartIndex = litrope.local_start_index();
     //draw leaves
     while((current = litrope.pop()) != nullptr && y < textHeight){
         //draw node text
@@ -85,130 +113,45 @@ void _tra_draw_text_down(RopeNode *rope, uint16_t xPaneStart, uint16_t yPaneStar
 }
 
 /*
-    measures weight up until previous new line or when weight is at limit
+    measures weight up until next new line including cursor
 */
-uint16_t _weight_until_prev_new_line(RopeNode *rope, size_t currentIndex){
-    uint16_t weight = 0;
-    RopeLeafIteratorBack blitrope(rope, currentIndex);
+size_t weight_until_next_new_line(RopeNode *rope, size_t currentIndex){
+    size_t weight = 0;
+    RopeLeafIterator litrope(rope, currentIndex);
+    size_t weightToNodeEnd = litrope.get() != nullptr ? litrope.get()->weight - litrope.local_start_index() : 0;
     RopeNode *current;
+    do{
+        current = litrope.pop();
+        if(current == nullptr)
+            break;        
+        //add weight
+        weight += weightToNodeEnd>0?weightToNodeEnd:current->weight;
+        weightToNodeEnd = 0;
+    }while(!(current->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE));
+    return weight + weightToNodeEnd;
+}
+
+/*
+    measures weight up until previous new line including cursor
+*/
+size_t weight_until_prev_new_line(RopeNode *rope, size_t currentIndex){
+    size_t weight = 0;
+    RopeLeafIteratorBack blitrope(rope, currentIndex);
+    size_t weightToNodeStart = blitrope.local_start_index() + 1;
+    RopeNode *current;
+    blitrope.pop();
     //start from prev
-    blitrope.next();
     while((current = blitrope.pop()) != nullptr &&
         !(current->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE)){
         //add weight
         weight += current->weight;
     }
-    return weight;
+    return weight + weightToNodeStart;
 }
 
-void _tra_draw_node_up(RopeNode *node, uint16_t &x, uint16_t &y, uint16_t xPaneStart, uint16_t yPaneStart, uint16_t xStart, uint16_t yStart, uint16_t textWidth, uint16_t textHeight, size_t endIndex, uint16_t weightUntilPrevNewLine){
-    const Termija& termija = Termija::instance();
-    //get font
-    Font *font = tra_get_font();
-    if(font == nullptr){
-        PLOG_ERROR << "font not loaded, aborted.";
-        return;
-    }
-    bool isNewLine = node->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE;
-    //prev line
-    if(x <= xStart){
-        y--;
-        x= (xStart + textWidth);
-    }
-    //cut newlined, so that it fits right in the first line
-    if(isNewLine && node->weight > (textWidth - (x - xStart))){
-        //length of the first line of the newlined text
-        uint16_t firstLineTextLength = textWidth - weightUntilPrevNewLine;
-        x= (xStart + textWidth) - (firstLineTextLength - (node->weight % textWidth));
-    }
-    //whole or until start of frame
-    size_t left = std::max(0, (int)endIndex - (x - xStart));
-    size_t right = endIndex;
-    //whole text or until yStart
-     //draw until left, excluding left
-    while(left < right && y >= yStart){
-        //move position, make room for text
-        if(left==0 && isNewLine){
-            //whole text fits in line
-            if(right == endIndex){//put the newlined text at the end of prev notnewlined block
-                x = xStart + (weightUntilPrevNewLine>0?(weightUntilPrevNewLine % textWidth):0);
-            }else{//it's been cut bcs it doesn't fit
-                x = (xStart + textWidth) - (right-left);
-            }
-        }else{
-            if(isNewLine){
-                //newlined cut, put at start
-                x = xStart;
-            }else{//not newlined, just move so it fits
-                x = x-(right - left);
-            }
-        }
-        //draw
-        Vector2 position{(float)xPaneStart+(x*(termija.fontWidth+termija.fontSpacing)), (float)yPaneStart+(y*(termija.fontHeight))};
-        _DrawTextEx(*font, node->text.get() + left, position, (float)termija.fontHeight, (float)termija.fontSpacing, LIGHTGRAY, right-left);
-        //prev part
-        right = left;
-        left = std::max(0, (int)left-(textWidth - xStart));
-        //prev line
-        if(x <= xStart){
-            y--;
-            x=xStart + textWidth;
-        }
-    }
-}
-
-/*
-    draw text up from cursor index, including cursor index;
-        starts from cursor xy - 1
-*/
-void _tra_draw_text_up(RopeNode *rope, uint16_t xPaneStart, uint16_t yPaneStart, uint16_t xStart, uint16_t yStart, uint16_t textWidth, uint16_t textHeight,const Cursor &cursor){
-    if(rope == nullptr){
-        PLOG_ERROR << "rope is NULL, aborted.";
-        return;
-    }
-
-    const Termija& termija = Termija::instance();
-    //start iterating trough leaves
-    RopeLeafIteratorBack blitrope(rope, cursor.index);
-    if(blitrope.get() == nullptr){
-        return;
-    }
-    RopeNode *current;//start from cursor xy-1
-    uint16_t x=cursor.x,y=cursor.y;//initialEndIndex is length to end index inside leaf node
-    size_t initialEndIndex = blitrope.local_start_index()+1;
-    size_t currentIndex = (cursor.index - initialEndIndex) + blitrope.get()->weight;
-    uint16_t weightUntilPrevNewLine = 0;
-    //draw leaves
-    while((current = blitrope.pop()) != nullptr && y >= yStart){
-        //draw node text
-        if(current->text != nullptr){
-            if(blitrope.get() != nullptr){//calculate current rope index
-                currentIndex -= current->weight - 1;//calculate distance to first previous new line
-                weightUntilPrevNewLine = _weight_until_prev_new_line(rope, currentIndex);
-            }else{
-                currentIndex = 0;
-                weightUntilPrevNewLine = 0;
-            }
-            //draw
-            size_t endIndex = initialEndIndex>0?initialEndIndex:current->weight;
-            _tra_draw_node_up(current, x, y, xPaneStart, yPaneStart, xStart, yStart, textWidth, textHeight, endIndex, weightUntilPrevNewLine);
-            //used only on first call
-            initialEndIndex = 0;
-        }
-    }
-}
-
-void tra_draw_text(RopeNode *rope, uint16_t xPaneStart, uint16_t yPaneStart, uint16_t xStart, uint16_t yStart, uint16_t textWidth, uint16_t textHeight,const Cursor &cursor){
-   //TODO:draw cursor
+void tra_draw_text(RopeNode *rope, uint16_t xPaneStart, uint16_t yPaneStart, uint16_t xStart, uint16_t yStart, uint16_t textWidth, uint16_t textHeight,Cursor &cursor){
     _tra_draw_text_down(rope, xPaneStart, yPaneStart, xStart, yStart, textWidth, textHeight, cursor);
-    _tra_draw_text_up(rope, xPaneStart, yPaneStart, xStart, yStart, textWidth, textHeight, cursor);
-
 }
-
-
-
-
-
 
 // DrawTextEx with size
 // Draw text using Font

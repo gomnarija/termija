@@ -169,7 +169,8 @@ void tra_pane_is_resized(Pane &pane, int16_t widthDiff, int16_t heightDiff){
             PLOG_ERROR << "widget at index: " << i << " is NULL, skipped.";
             continue;
         }
-        widget->on_pane_resize(widthDiff, heightDiff);
+        //TODO
+        //widget->on_pane_resize(widthDiff, heightDiff);
     }
 }
 

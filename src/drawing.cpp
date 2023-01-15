@@ -16,8 +16,21 @@ namespace termija{
 void _DrawTextEx(Font, const char *, Vector2, float, float, Color, unsigned int);
 
 void tra_draw_pane_border(const Pane& pane){
-    DrawCircle(pane.topX, pane.topY, 4, RED);
     DrawRectangleLines(pane.topX, pane.topY, pane.width, pane.height, ORANGE);
+}
+
+
+void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture, const Shader *backShader){
+    if(backTexture == NULL){
+        PLOG_ERROR << "backTexture is NULL, aborted.";
+        return;
+    }
+    //draw
+    if(backShader != NULL)
+        BeginShaderMode(*backShader);
+            DrawTextureRec(*backTexture, {0,0,(float)width, (float)height}, {0,0}, RAYWHITE);
+    if(backShader != NULL)
+        EndShaderMode();
 }
 
 

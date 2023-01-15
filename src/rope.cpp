@@ -347,10 +347,12 @@ void rope_append(RopeNode *rope,std::unique_ptr<RopeNode> prope){
     //append the given rope
     right_most->right.swap(prope);
     //push text to the new left node
-    right_most->left = rope_create_node(right_most->text.get());
-    right_most->text.release();
-    //move flags to the creates node
-    right_most->left->flags.swap(right_most->flags);
+    if(right_most->text != nullptr){
+        right_most->left = rope_create_node(right_most->text.get());
+        right_most->text.release();
+        //move flags to the created node
+        right_most->left->flags.swap(right_most->flags);
+    }
     //go up the stack changing weight
     RopeNode *current, *prev=right_most;
     while(!nodeStack.empty()){
@@ -383,8 +385,6 @@ void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prop
 
     if(index == 0){
         rope_prepend(rope, std::move(prope));
-    }else if(index == rope->weight - 1){
-        rope_append(rope, std::move(prope));
     }else{
         std::unique_ptr<RopeNode> right_side = rope_split_at(rope, index);
         rope_append(rope, std::move(prope));
@@ -577,6 +577,19 @@ std::unique_ptr<RopeNode> rope_rebalance(std::unique_ptr<RopeNode> rope){
     std::unique_ptr<RopeNode> right_sub;
     return std::move(rope_concat(std::move(left_sub), std::move(right_sub)));
 }
+
+/*
+    helper
+*/
+void _split_flags(RopeFlags *flags, RopeFlags *left, RopeFlags *right){
+    //new line goes to the right
+    if(flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE){
+        flags->effects ^= FLAG_NEW_LINE;
+        right->effects |= FLAG_NEW_LINE;
+    }
+}
+
+
 /*
     helper
 */
@@ -651,7 +664,8 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
         }
 
     }
-
+    //split flags
+    _split_flags(node->flags.get(), left->flags.get(), right->flags.get());
     //delete text from parent; set weight to left childs weight; connect left child
     node->text.release();
     node->weight = left->weight;
@@ -755,6 +769,8 @@ RopeNode* _rope_node_at_index_trace_right(RopeNode &rope,size_t index, std::stac
 */
 RopeNode* rope_node_at_index(RopeNode &rope,size_t index, size_t *local_index){
     if(index == 0){
+        if(local_index != nullptr)
+            *local_index = 0;
         return rope_left_most_node(rope);
     }
     //leaf

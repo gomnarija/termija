@@ -11,8 +11,11 @@
 
 
 
-inline const size_t                MAX_WEIGHT = 512;
+inline const size_t                 MAX_WEIGHT = 512;
 
+
+//flags
+inline const uint8_t                FLAG_NEW_LINE = 0b00000001;
 
 struct RopeNode;
 

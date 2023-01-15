@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 #include <cstring>  //strcpy
-#include <stack> //destroy
 
 #include "termija.h"
 #include <raylib.h>
@@ -12,13 +11,15 @@
 namespace termija{
 
 Termija::Termija() :
-    screenWidth{0},
-    screenHeight{0},
+    windowWidth{0},
+    windowHeight{0},
+    windowMargin{0},
     paneMargin{0},
     currentPane{nullptr},
     fontWidth{0},
     fontHeight{0},
-    fontSpacing{0}{}
+    fontSpacing{0},
+    time{0}{}
 
 
 
@@ -32,9 +33,14 @@ void tra_terminate(){
     //delete panes
     tra_clear_panes();
 
-    //raylib
+    //font
     if(termija.font != nullptr)
         UnloadFont(*(termija.font));
+    //shaders
+    UnloadShader(termija.backShader);
+    UnloadShader(termija.textShader);
+    UnloadShader(termija.postShader);
+
     CloseWindow();
 }
 
@@ -47,16 +53,16 @@ void tra_init_termija(){
     tra_init_termija(tra_get_window_width(), tra_get_window_height(), tra_get_window_title().c_str(), tra_get_pane_margin());
 }
 
-void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * windowTitle){
+void tra_init_termija(uint16_t windowWidth,uint16_t windowHeight,const char * windowTitle){
     //config
     if(!configLoaded){
         tra_default_config();
     }
 
-    tra_init_termija(screenWidth, screenHeight, windowTitle, tra_get_pane_margin());
+    tra_init_termija(windowWidth, windowHeight, windowTitle, tra_get_pane_margin());
 }
 
-void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * windowTitle,uint8_t paneMargin){
+void tra_init_termija(uint16_t windowWidth,uint16_t windowHeight,const char * windowTitle,uint8_t paneMargin){
     Termija& termija = tra_get_instance();
 
     //plog
@@ -68,19 +74,42 @@ void tra_init_termija(uint16_t screenWidth,uint16_t screenHeight,const char * wi
     }
 
     //raylib
-    InitWindow(screenWidth, screenHeight, windowTitle);
+    InitWindow(windowWidth, windowHeight, windowTitle);
+
+    //font
+    tra_load_font();
+
+    //shaders TODO:loading nondefault shaders
+    termija.backShader = LoadShader(NULL, TextFormat(DEFAULT_BACK_SHADER_PATH, GLSL_VERSION));
+    termija.textShader = LoadShader(NULL, TextFormat(DEFAULT_TEXT_SHADER_PATH, GLSL_VERSION));
+    termija.postShader = LoadShader(TextFormat(DEFAULT_BASE_SHADER_PATH, GLSL_VERSION), TextFormat(DEFAULT_POST_SHADER_PATH, GLSL_VERSION));
+
+    termija.backTexture     = LoadTexture(DEFAULT_BACK_TEXTURE_PATH);
+    termija.renderTexture   = LoadRenderTexture(termija.windowWidth, termija.windowHeight);
+
+    //mouse
+    SetMousePosition(windowWidth/2, windowHeight/2);
+    HideCursor();
+
 
     //window
-    tra_set_window_size(screenWidth, screenHeight);
+    tra_set_window_size(windowWidth, windowHeight);
     tra_set_window_title(windowTitle);
     tra_set_pane_margin(paneMargin);
+    termija.windowMargin = DEFAULT_WINDOW_MARGIN;
 
     //panes
-    termija.currentPane = tra_add_pane(paneMargin, paneMargin, screenWidth - 2*paneMargin, screenHeight - 2*paneMargin);
+    termija.currentPane = tra_add_pane(paneMargin + termija.windowMargin, paneMargin + termija.windowMargin, tra_get_screen_width() - 2*paneMargin, tra_get_screen_height() - 2*paneMargin);
 }
 
 void tra_update(){
     Termija& termija = Termija::instance();
+
+
+    if(IsKeyPressed(KEY_Q)){
+        CloseWindow();
+    }
+
 
     //update panes
     for(size_t i=0;i<termija.panes.size();i++){
@@ -91,35 +120,79 @@ void tra_update(){
         }
         tra_update_pane(*pane);
     }
-    
-    //draw
-    tra_draw();
 
+    //look around, my little babe
+    tra_look_around();
 }
+
+void tra_draw(){
+    Termija &termija = Termija::instance();
+    termija.time += GetFrameTime();
+    //update shader uniforms
+    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "time"), &termija.time, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "justLooking"), &termija.justLooking, SHADER_UNIFORM_VEC4);
+    //render onto texture
+    BeginTextureMode(termija.renderTexture);
+        //draw back image
+        tra_draw_back(termija.windowWidth, termija.windowHeight,  &(termija.backTexture), &(termija.backShader));
+        //draw panes
+        BeginShaderMode(termija.textShader);
+            for(size_t i=0;i<termija.panes.size();i++){
+                Pane *pane = termija.panes[i].get();
+                if(pane == nullptr){
+                    PLOG_ERROR << "pane is NULL at index: " << i << ", skipped.";
+                    continue;
+                }
+                tra_draw_pane(*pane);
+            }
+        EndShaderMode();
+    EndTextureMode();
+    //draw rendered texture
+    BeginDrawing();
+        BeginShaderMode(termija.postShader);
+            ClearBackground(BLACK); 
+            DrawTextureRec(termija.renderTexture.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);
+        EndShaderMode();
+    EndDrawing();
+}
+
+
 
 
 void tra_set_window_size(uint16_t width,uint16_t height){
     Termija& termija = Termija::instance();
 
-    termija.screenWidth = width;
-    termija.screenHeight = height;
+    termija.windowWidth = width;
+    termija.windowHeight = height;
 
     if(GetWindowHandle() != nullptr){
         SetWindowSize(width, height);
     }
 }
 
-size_t tra_get_window_width(){
+uint16_t tra_get_window_width(){
     const Termija& termija = Termija::instance();
 
-    return termija.screenWidth;
+    return termija.windowWidth;
 }
 
-size_t tra_get_window_height(){
+uint16_t tra_get_window_height(){
     const Termija& termija = Termija::instance();
 
-    return termija.screenHeight;
+    return termija.windowHeight;
 }
+
+void tra_set_window_margin(uint16_t windowMargin){
+    Termija& termija = Termija::instance();
+    termija.windowMargin = windowMargin;
+    //todo:resize screen
+}
+
+uint16_t tra_get_window_margin(){
+    const Termija& termija = Termija::instance();
+    return termija.windowMargin;
+}
+
 
 void tra_set_window_title(const char *windowTitle){
     Termija& termija = Termija::instance();
@@ -137,10 +210,84 @@ std::string tra_get_window_title(){
     return termija.windowTitle;
 }
 
+void tra_look_around(){
+    Termija& termija = Termija::instance();
+    uint16_t mouseX = GetMouseX();
+    uint16_t mouseY = GetMouseY();//moves faster the further you are away from center
+    uint16_t xSpeed = 3 + (abs((tra_get_window_width()/2) - mouseX)/13);
+    uint16_t ySpeed = 3 + (abs((tra_get_window_height()/2) - mouseY)/13);
+
+    //center if outside center area
+    if(mouseX < tra_get_window_width()/2.3){
+        mouseX = tra_get_window_width()/2.3;
+    }
+    if(mouseX > tra_get_window_width()-(tra_get_window_width()/2.3)){
+        mouseX = tra_get_window_width()-(tra_get_window_width()/2.3);
+    }
+    if(mouseY < tra_get_window_height()/2.3){
+        mouseY = tra_get_window_height()/2.3;
+    }
+    if(mouseY > tra_get_window_height()-(tra_get_window_height()/2.3)){
+        mouseY = tra_get_window_height()-(tra_get_window_height()/2.3);
+    }
+
+    //move towards center of the window
+    if(!tra_is_mouse_moving_away()){
+        if(mouseX < tra_get_window_width()/2)
+            mouseX += std::max(1, (int)(((tra_get_window_width()/2) - mouseX) * 0.123));
+        if(mouseX > tra_get_window_width()/2)
+            mouseX -= std::max(1, (int)((mouseX - (tra_get_window_width()/2)) * 0.123));
+        if(mouseY < tra_get_window_height()/2)
+            mouseY += std::max(1, (int)(((tra_get_window_height()/2) - mouseY) * 0.123));
+        if(mouseY > tra_get_window_height()/2)
+            mouseY -= std::max(1, (int)((mouseY - (tra_get_window_height()/2)) * 0.123));
+    }
+    SetMousePosition(mouseX, mouseY);
+    //set uniform
+    termija.justLooking.x = ((tra_get_window_width()/2) - GetMouseX()) / (float)(tra_get_window_width()/2);
+    termija.justLooking.y = (GetMouseY() - (tra_get_window_height()/2)) / (float)(tra_get_window_height()/2);
+}
+
+bool tra_is_mouse_moving_away(){
+    static uint16_t mouseX, mouseY;
+    static float time=0.23;
+
+    if((mouseX>GetMouseX() && mouseX<(tra_get_window_width()/2) ||
+            mouseX<GetMouseX() && mouseX>(tra_get_window_width()/2) ||
+                mouseY>GetMouseY() && mouseY<(tra_get_window_height()/2) ||
+                    mouseY<GetMouseY() && mouseY>(tra_get_window_height()/2))){
+        time = 0.23;
+        mouseX = GetMouseX();
+        mouseY = GetMouseY();
+        return true;
+    }
+    else if(time > 0.023){
+        time -= tra_delta_time();
+        mouseX = GetMouseX();
+        mouseY = GetMouseY();
+        return true;
+    }
+    else{
+        mouseX = GetMouseX();
+        mouseY = GetMouseY();
+        return false;
+    }
+
+}
+
+
 void tra_set_fps(uint16_t targetFPS){
     if(GetWindowHandle() != nullptr){
         SetTargetFPS(targetFPS);
     }
+}
+
+uint16_t tra_get_screen_width(){
+    return tra_get_window_width() - (2*tra_get_window_margin());
+}
+
+uint16_t    tra_get_screen_height(){
+    return tra_get_window_height() - (2*tra_get_window_margin());
 }
 
 void tra_set_pane_margin(uint8_t paneMargin){
@@ -150,7 +297,7 @@ void tra_set_pane_margin(uint8_t paneMargin){
     //TODO: rescale panes
 }
 
-size_t tra_get_pane_margin(){
+uint8_t tra_get_pane_margin(){
     const Termija& termija = Termija::instance();
 
     return termija.paneMargin;
@@ -189,8 +336,7 @@ void tra_remove_pane(Pane *pane){
             to_remove.top->bottom = to_remove.bottom;
             if(to_remove.bottom != nullptr)
                 to_remove.bottom->top = to_remove.top;        
-            //destroy rope
-            tra_pane_destroy_rope(to_remove);
+            //TODO:destroy widgets
             //rescale neighbours //TODO
             termija.panes[i].swap(termija.panes[termija.panes.size()-1]);
             termija.panes.pop_back();
@@ -208,7 +354,7 @@ void tra_clear_panes(){
 
     //destroy ropes
     for(size_t i = 0;i<termija.panes.size();i++){
-        tra_pane_destroy_rope(*(termija.panes[i]));
+        //TODO:destroy widgets
     }
     //clear vector
     termija.panes.clear();
@@ -269,6 +415,12 @@ Font* tra_get_font(){
     Termija& termija = Termija::instance();
     return termija.font.get();
 }
+
+float tra_delta_time(){
+    //raylib
+    return GetFrameTime();
+}
+
 
 
 }

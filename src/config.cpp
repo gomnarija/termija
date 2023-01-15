@@ -115,7 +115,7 @@ void tra_default_config(){
     configLoaded = true;
 
     //window
-    tra_set_window_size(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
+    tra_set_window_size(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
     tra_set_window_title(DEFAULT_WINDOW_NAME);
     tra_set_pane_margin(DEFAULT_PANE_MARGIN);
 

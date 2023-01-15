@@ -317,6 +317,8 @@ void TextBox::cursorWalkUp(uint16_t diff){
 }
 
 void TextBox::cursorWalkDown(uint16_t diff){
+    if(this->cursor.index == this->text->weight)
+        return;//cursor at rope end
     uint16_t    rightDiff = 0;
     size_t      currentIndex = this->cursor.index;
     size_t      weightUntilNextNewLine = weight_until_next_new_line(this->text.get(), currentIndex);

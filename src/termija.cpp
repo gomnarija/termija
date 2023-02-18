@@ -84,7 +84,11 @@ void tra_init_termija(uint16_t windowWidth,uint16_t windowHeight,const char * wi
     termija.textShader = LoadShader(NULL, TextFormat(DEFAULT_TEXT_SHADER_PATH, GLSL_VERSION));
     termija.postShader = LoadShader(TextFormat(DEFAULT_BASE_SHADER_PATH, GLSL_VERSION), TextFormat(DEFAULT_POST_SHADER_PATH, GLSL_VERSION));
 
-    termija.backTexture     = LoadTexture(DEFAULT_BACK_TEXTURE_PATH);
+    termija.backTexture         = LoadTexture(DEFAULT_BACK_TEXTURE_PATH);
+    termija.backTexture.width   = windowWidth;
+    termija.backTexture.height  = windowHeight;
+    
+    
     termija.renderTexture   = LoadRenderTexture(termija.windowWidth, termija.windowHeight);
 
     //mouse

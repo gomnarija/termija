@@ -79,22 +79,22 @@ void _tra_draw_node_down(RopeNode *node, uint16_t &x, uint16_t &y, uint16_t xPan
      //draw until right, excluding right
     while(left < right && y < textHeight){
         //draw
-        Vector2 position{(float)xPaneStart+(x*(termija.fontWidth+termija.fontSpacing)), (float)yPaneStart+(y*(termija.fontHeight))};
+        Vector2 position{(float)xPaneStart+xStart+(x*(termija.fontWidth+termija.fontSpacing)), (float)yPaneStart+yStart+(y*(termija.fontHeight))};
         _DrawTextEx(*font, node->text.get() + left, position, (float)termija.fontHeight, (float)termija.fontSpacing, LIGHTGRAY, right-left);
         //move position
         x += (right - left);
         //next part
         left = right;
-        right = std::min(strlen(node->text.get()), right+(size_t)(textWidth - xStart));
+        right = std::min(strlen(node->text.get()), right+(size_t)(textWidth - 0));
         //next line
         if(x >= textWidth){
             y++;
-            x=xStart;
+            x=0;
         }
     }
     //new line, only if not already at the star
-    if(x > xStart && (node->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE)){
-        x=xStart;
+    if(x > 0 && (node->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE)){
+        x=0;
         y++;
     }
 }

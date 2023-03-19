@@ -41,7 +41,7 @@ void TextBox::draw(const uint16_t startX,const uint16_t startY,const uint16_t te
                     std::min(textWidth, this->getTextWidth()), std::min(textHeight, this->getTextHeight()), 
                     this->frameCursor);
 
-    tra_draw_cursor(startX, startY, this->cursor);
+    tra_draw_cursor(startX+this->x, startY+this->y, this->cursor);
 
 }
 

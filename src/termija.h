@@ -152,6 +152,8 @@ class Termija final{
         friend void             tra_terminate();
         friend void             tra_update();
         friend Pane*            tra_add_pane(uint16_t, uint16_t, uint16_t, uint16_t);
+        friend Pane*            tra_duplicate_pane(Pane *);
+        friend Pane*            tra_impose_duplicate_pane(Pane *);
         friend void             tra_remove_pane(Pane *);
         friend void             tra_clear_panes();
         friend size_t           tra_get_pane_count();
@@ -210,6 +212,8 @@ bool        tra_is_mouse_moving_away();
 
 //panes
 Pane*       tra_add_pane(uint16_t, uint16_t, uint16_t, uint16_t);
+Pane*       tra_duplicate_pane(Pane *);
+Pane*       tra_impose_duplicate_pane(Pane *);
 void        tra_remove_pane(Pane *);
 void        tra_clear_panes();
 size_t      tra_get_pane_count();

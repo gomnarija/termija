@@ -347,6 +347,31 @@ Pane* tra_add_pane(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height
     return termija.panes.back().get();
 }
 
+Pane* tra_duplicate_pane(Pane *pane){
+    Termija& termija = Termija::instance();
+
+    if(pane == nullptr){
+        PLOG_ERROR << "given pane is NULL, aborted.";
+        return;
+    }
+
+    termija.panes.push_back(std::make_unique<Pane>(pane->topX, pane->topY, pane->width, pane->height));
+    return termija.panes.back().get();
+}
+
+Pane* tra_impose_duplicate_pane(Pane *pane){
+    Termija& termija = Termija::instance();
+
+    if(pane == nullptr){
+        PLOG_ERROR << "given pane is NULL, aborted.";
+        return;
+    }
+
+    termija.panes.push_back(std::make_unique<Pane>(pane->topX, pane->topY, pane->width, pane->height));
+    tra_set_current_pane(termija.panes.back().get());
+    return termija.currentPane;
+}
+
 void tra_remove_pane(Pane *pane){
     Termija& termija = Termija::instance();
 

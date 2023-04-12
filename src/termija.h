@@ -166,6 +166,7 @@ class Termija final{
 
     public:
         friend void             tra_draw();
+        friend void             tra_draw_current();
 
 
     private:
@@ -217,6 +218,7 @@ void        tra_set_current_pane(Pane*);
 
 //drawing
 void        tra_draw();
+void        tra_draw_current();
 void        tra_draw_pane(const Pane&);
 void        tra_draw_pane_border(const Pane&);
 void        tra_draw_text(RopeNode *, uint16_t, uint16_t, uint16_t, uint16_t);

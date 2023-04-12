@@ -161,6 +161,35 @@ void tra_draw(){
 }
 
 
+void tra_draw_current(){
+    Termija &termija = Termija::instance();
+    termija.time += GetFrameTime();
+    //update shader uniforms
+    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "time"), &termija.time, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "justLooking"), &termija.justLooking, SHADER_UNIFORM_VEC4);
+    //render onto texture
+    BeginTextureMode(termija.renderTexture);
+        //draw back image
+        tra_draw_back(termija.windowWidth, termija.windowHeight,  &(termija.backTexture), &(termija.backShader));
+        //draw current pane
+        BeginShaderMode(termija.textShader);
+                if(termija.currentPane == nullptr){
+                    PLOG_ERROR << "current pane is NULL, aborted.";
+                }else{
+                    tra_draw_pane(*(termija.currentPane));
+                }
+        EndShaderMode();
+    EndTextureMode();
+    //draw rendered texture
+    BeginDrawing();
+        BeginShaderMode(termija.postShader);
+            ClearBackground(BLACK); 
+            DrawTextureRec(termija.renderTexture.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);
+        EndShaderMode();
+    EndDrawing();
+}
+
+
 
 
 void tra_set_window_size(uint16_t width,uint16_t height){

@@ -352,7 +352,7 @@ Pane* tra_duplicate_pane(Pane *pane){
 
     if(pane == nullptr){
         PLOG_ERROR << "given pane is NULL, aborted.";
-        return;
+        return nullptr;
     }
 
     termija.panes.push_back(std::make_unique<Pane>(pane->topX, pane->topY, pane->width, pane->height));
@@ -364,7 +364,7 @@ Pane* tra_impose_duplicate_pane(Pane *pane){
 
     if(pane == nullptr){
         PLOG_ERROR << "given pane is NULL, aborted.";
-        return;
+        return nullptr;
     }
 
     termija.panes.push_back(std::make_unique<Pane>(pane->topX, pane->topY, pane->width, pane->height));

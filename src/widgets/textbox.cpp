@@ -240,7 +240,7 @@ void TextBox::insertAtCursor(const char *text){
         rope_append(this->text.get(), text);
     }
     else{
-        rope_insert_at(this->text.get(), this->cursor.index, text);
+        rope_insert_at(this->text.get(), this->cursor.index - 1, text);
     }
     //move cursor
     size_t iWeight = strlen(text);
@@ -266,7 +266,7 @@ void TextBox::insertLineAtCursor(const char *text){
         rope_append(this->text.get(), rope_create_node(text, 0, 0, FLAG_NEW_LINE));
     }
     else{
-        rope_insert_at(this->text.get(), this->cursor.index, rope_create_node(text, 0, 0, FLAG_NEW_LINE));
+        rope_insert_at(this->text.get(), this->cursor.index - 1, rope_create_node(text, 0, 0, FLAG_NEW_LINE));
     }
     //move cursor to new line
     size_t iWeight = strlen(text);

@@ -383,7 +383,7 @@ void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prop
         return;
     }
 
-    if(index == 0){
+    if(false){
         rope_prepend(rope, std::move(prope));
     }else{
         std::unique_ptr<RopeNode> right_side = rope_split_at(rope, index);

@@ -261,12 +261,12 @@ void TextBox::insertLineAtCursor(const char *text){
     size_t pWeight = this->text->weight;
     //insert given text, with new line flag, at cursor
     if(this->cursor.index == 0){
-        rope_prepend(this->text.get(), rope_create_node(text, 0, 0, FLAG_NEW_LINE));
+        rope_prepend(this->text.get(), rope_create_node(text, FLAG_NEW_LINE));
     }else if(this->cursor.index == this->text->weight){
-        rope_append(this->text.get(), rope_create_node(text, 0, 0, FLAG_NEW_LINE));
+        rope_append(this->text.get(), rope_create_node(text, FLAG_NEW_LINE));
     }
     else{
-        rope_insert_at(this->text.get(), this->cursor.index - 1, rope_create_node(text, 0, 0, FLAG_NEW_LINE));
+        rope_insert_at(this->text.get(), this->cursor.index - 1, rope_create_node(text, FLAG_NEW_LINE));
     }
     //move cursor to new line
     size_t iWeight = strlen(text);

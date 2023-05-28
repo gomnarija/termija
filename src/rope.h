@@ -20,8 +20,6 @@ inline const uint8_t                FLAG_NEW_LINE = 0b00000001;
 struct RopeNode;
 
 struct RopeFlags final{
-    uint16_t                    preWeight;
-    uint16_t                    postWeight;
     std::bitset<8>              effects;
 
 
@@ -100,7 +98,7 @@ public:
 
 std::unique_ptr<RopeNode>       rope_create_empty();
 std::unique_ptr<RopeNode>       rope_create_node(const char*);
-std::unique_ptr<RopeNode>       rope_create_node(const char*, size_t, size_t, std::bitset<8>);
+std::unique_ptr<RopeNode>       rope_create_node(const char*, std::bitset<8>);
 std::unique_ptr<RopeNode>       rope_create(const char*);
 void                            rope_destroy(std::unique_ptr<RopeNode>);
 std::unique_ptr<RopeNode>       rope_concat(std::unique_ptr<RopeNode>,const char*);
@@ -124,9 +122,6 @@ RopeNode*                       rope_left_most_node_trace(RopeNode&,std::stack<R
 RopeNode*                       rope_left_most_node(RopeNode&);
 RopeNode*                       rope_right_most_node_trace(RopeNode&,std::stack<RopeNode*>*);
 RopeNode*                       rope_right_most_node(RopeNode&);
-void                            rope_add_additional_weight_at(RopeNode *, size_t, uint16_t, uint16_t);
-void                            rope_pre_weight_rebalance(RopeFlags *, uint16_t );
-void                            rope_post_weight_rebalance(RopeFlags *, uint16_t );
 RopeNode*                       rope_range(RopeNode&, size_t, size_t, size_t *);
 std::string                     rope_dot(const RopeNode&);
 

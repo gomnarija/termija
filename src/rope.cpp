@@ -305,6 +305,10 @@ void rope_prepend(RopeNode *rope,std::unique_ptr<RopeNode> prope){
     }
     std::stack<RopeNode*> nodeStack;
     uint16_t prope_weight = prope->weight;
+
+    //head
+    if(rope->left == nullptr)
+        rope->weight += prope_weight;
     
     //get left-most leaf
     RopeNode *left_most = rope_left_most_node_trace(*rope, &nodeStack);
@@ -756,7 +760,7 @@ RopeNode* rope_node_at_index_trace(RopeNode &rope,size_t index, std::stack<RopeN
     //find leaf
     while(current->left != nullptr || current->right != nullptr){
         if(index == 0){
-        return rope_left_most_node_trace(rope, nodeStack);
+        return rope_left_most_node_trace(*current, nodeStack);
         }
         //right
         if(index + 1 > current->weight){
@@ -806,7 +810,7 @@ RopeNode* _rope_node_at_index_trace_right(RopeNode &rope,size_t index, std::stac
     //find leaf
     while(current->left != nullptr || current->right != nullptr){
         if(index == 0){
-        return rope_left_most_node_trace(rope, nodeStack);
+        return rope_left_most_node_trace(*current, nodeStack);
         }
         //right
         if(index + 1 > current->weight){
@@ -853,7 +857,7 @@ RopeNode* rope_node_at_index(RopeNode &rope,size_t index, size_t *local_index){
     //find leaf
     while(current->left != nullptr || current->right != nullptr){
         if(index == 0){
-        return rope_left_most_node(rope);
+        return rope_left_most_node(*current);
         }
         //right
         if(index + 1 > current->weight){

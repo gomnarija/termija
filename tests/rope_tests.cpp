@@ -268,6 +268,25 @@ TEST_CASE( "Rope is prepended", "[rope_prepend]" ) {
         REQUIRE( rope_text == "some_text" );
     }
 
+    SECTION("prepend empty rope"){
+        std::unique_ptr<RopeNode> rope = rope_create_empty();
+        rope_prepend(rope.get(), "pre_text");
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->left != nullptr );
+        REQUIRE( rope->weight == 8 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "pre_text" );
+    }
+
     SECTION("prepend nullptr"){
         std::unique_ptr<RopeNode> rope = rope_create("some_text");
         rope_prepend(rope.get(), nullptr);
@@ -385,7 +404,7 @@ TEST_CASE( "Rope is appended", "[rope_append]" ) {
         REQUIRE( rope_text == "some_text_some_post_text_ya_ba_dibba_dibba_dibba_dibba_dibba_dibba_dum" );
     }
 
-    SECTION("append empty"){
+    SECTION("append empty text"){
         std::unique_ptr<RopeNode> rope = rope_create("some_text");
         rope_append(rope.get(), "");
 
@@ -403,6 +422,25 @@ TEST_CASE( "Rope is appended", "[rope_append]" ) {
         }
         REQUIRE( rope_text == "some_text" );
 
+    }
+
+    SECTION("append empty rope"){
+        std::unique_ptr<RopeNode> rope = rope_create_empty();
+        rope_append(rope.get(), "post_text");
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->left != nullptr );
+        REQUIRE( rope->weight == 9 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "post_text" );
     }
 
     SECTION("append nullptr"){
@@ -472,6 +510,44 @@ TEST_CASE( "Inserted at index inside of rope", "[rope_insert_at]" ) {
         REQUIRE( rope_text == "some_some_text_text" );
     }
 
+    SECTION("insert text at index at the edge of the node"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_insert_at(rope.get(), 3, "_some_text");
+        rope_insert_at(rope.get(), 3, "_more_at_same_spot");
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 37 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "some_more_at_same_spot_some_text_text" );
+    }
+
+    SECTION("insert text at index at the edge of the node"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_insert_at(rope.get(), 3, "X");
+        rope_insert_at(rope.get(), 4, "_more_at_X_spot");
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 25 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "someX_more_at_X_spot_text" );
+    }
+
     SECTION("insert nullptr at index inside rope"){
         std::unique_ptr<RopeNode> rope = rope_create("some_text");
         rope_insert_at(rope.get(), 3, nullptr);
@@ -511,6 +587,7 @@ TEST_CASE( "Inserted at index inside of rope", "[rope_insert_at]" ) {
         REQUIRE( rope_text == "some_text" );
 
     }
+    
 }
 
 TEST_CASE( "Delete at index inside of rope", "[rope_delete_at]" ) {

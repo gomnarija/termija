@@ -440,7 +440,8 @@ void rope_delete_at(RopeNode *rope, size_t index, size_t length){
     }
     std::unique_ptr<RopeNode> deleted_rope = rope_split_at(rope, index);
     std::unique_ptr<RopeNode> right_side = rope_split_at(deleted_rope.get(), length-1);
-    rope_append(rope, std::move(right_side));
+    if(right_side != nullptr)
+        rope_append(rope, std::move(right_side));
 }
 
 /*

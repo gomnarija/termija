@@ -317,6 +317,7 @@ void rope_prepend(RopeNode *rope,std::unique_ptr<RopeNode> prope){
 
     //prepend the given rope
     left_most->left.swap(prope);
+    left_most->weight = prope_weight;
 
     //push text to the new right node
     left_most->right = left_most->text==nullptr?nullptr:rope_create_node(left_most->text.get());

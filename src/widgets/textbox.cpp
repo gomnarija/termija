@@ -35,11 +35,12 @@ void TextBox::update(){
 
 void TextBox::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
     //draw
-    tra_draw_text(this->text.get(), 
-                    startX, startY, 
-                    this->x, this->y, 
-                    std::min(textWidth, this->getTextWidth()), std::min(textHeight, this->getTextHeight()), 
-                    this->frameCursor);
+    if(this->text->weight > 0)
+        tra_draw_text(this->text.get(), 
+                        startX, startY, 
+                        this->x, this->y, 
+                        std::min(textWidth, this->getTextWidth()), std::min(textHeight, this->getTextHeight()), 
+                        this->frameCursor);
 
     tra_draw_cursor(startX+this->x, startY+this->y, this->cursor);
 
@@ -272,6 +273,49 @@ void TextBox::insertLineAtCursor(const char *text){
     size_t iWeight = strlen(text);
     if(pWeight == this->text->weight - iWeight){
         cursorWalkRight(iWeight);
+    }
+}
+
+void TextBox::deleteAtCursor(){
+    if(this->cursor.index > this->text->weight && this->cursor.index != 0){
+        PLOG_ERROR << "invalid cursor index, aborted.";
+        return;
+    }
+    //delete at cursor
+    size_t ropeIndex = this->cursor.index==this->text->weight?this->cursor.index-1:this->cursor.index;
+    if(this->text->weight > 0 
+        && this->cursor.index+1 < this->text->weight)
+        rope_delete_at(this->text.get(), ropeIndex, 1);
+    //move back if somehow goes over
+    if(this->cursor.index > this->text->weight){
+        this->cursor.index = this->text->weight;//put at end
+        this->repositionCursor();
+    }
+}
+
+void TextBox::backspaceAtCursor(){
+    if(this->cursor.index > this->text->weight && this->cursor.index != 0){
+        PLOG_ERROR << "invalid cursor index, aborted.";
+        return;
+    }
+    /*
+        if cursor is at index 1,
+            text becomes split text 1-weight;
+            cursor moves to 0
+    */
+    if(this->cursor.index == 1){
+        if(this->text->weight > 0){
+            std::unique_ptr<RopeNode> new_rope = rope_split_at(this->text.get(), 0);
+            if(new_rope != nullptr)
+                std::swap(this->text, new_rope);
+            else
+                this->text = rope_create_empty();
+            
+            this->cursor.index = this->cursor.x = this->cursor.y = 0;
+        }
+    }else if(this->cursor.index > 1){//delete at index - 2
+        rope_delete_at(this->text.get(), this->cursor.index-2, 1);
+        cursorWalkLeft(1);
     }
 }
 

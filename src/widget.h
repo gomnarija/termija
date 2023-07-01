@@ -107,6 +107,8 @@ public:
     uint16_t        getTextHeight() const;
     void            insertAtCursor(const char *);
     void            insertLineAtCursor(const char *);
+    void            deleteAtCursor();
+    void            backspaceAtCursor();
     void            cursorWalkLeft(uint16_t);
     void            cursorWalkRight(uint16_t);
     void            cursorWalkUp(uint16_t);

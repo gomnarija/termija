@@ -85,6 +85,35 @@ uint16_t TextBox::getTextHeight() const{
     return this->height;
 }
 
+
+size_t 
+TextBox::getCurrentIndex() const{
+    return this->cursor.index;
+}
+
+std::string
+TextBox::getText(size_t start, size_t end) const{
+    if(end <= start ||
+        this->text->weight == 0 ||
+            this->text->weight <= start)
+        return std::string();
+
+    std::string rope_text;
+    RopeLeafIterator litrope(this->text.get(), start);
+        RopeNode *c;
+        while((c = litrope.pop()) != nullptr && rope_text.length() < (end - start)){
+            if( c->text != nullptr )
+                rope_text += c->text.get();
+        }
+
+    return rope_text;
+}
+    
+std::string
+TextBox::getText() const{
+    return this->getText(0, this->text->weight);
+}
+
 /*
     positions cursor inside textbox, based on rope index, relative to the frameCursor
 */

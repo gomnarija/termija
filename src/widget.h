@@ -3,6 +3,7 @@
 
 
 #include "rope.h"
+#include "string.h"
 
 namespace termija{
 
@@ -105,6 +106,9 @@ public:
     void            setSize(const uint16_t,const uint16_t);
     uint16_t        getTextWidth() const;
     uint16_t        getTextHeight() const;
+    size_t          getCurrentIndex() const;
+    std::string     getText(size_t, size_t) const;
+    std::string     getText() const;
     void            insertAtCursor(const char *);
     void            insertLineAtCursor(const char *);
     void            deleteAtCursor();

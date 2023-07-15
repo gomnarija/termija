@@ -75,6 +75,18 @@ void TextBox::setSize(const uint16_t width,const uint16_t height){
     this->repositionCursor();
 }
 
+void
+TextBox::setCursorIndex(size_t index){
+    if(this->text->weight <= index){
+        this->cursor.index = index;
+        this->repositionCursor();
+    }else{
+        PLOG_ERROR << "index out of bounds, aborted. index : " << index;
+    }
+}
+
+
+
 //TODO:margins, scrollbar
 uint16_t TextBox::getTextWidth() const{
     return this->width;
@@ -90,6 +102,12 @@ size_t
 TextBox::getCurrentIndex() const{
     return this->cursor.index;
 }
+
+size_t
+TextBox::getTextLength() const{
+    return this->text->weight;
+}
+
 
 std::string
 TextBox::getText(size_t start, size_t end) const{
@@ -210,14 +228,15 @@ void TextBox::frameCursorMove(int16_t diff){
                 size_t prevWeightUntilPrevNewLine = weightUntilPrevNewLine;
                 if((this->frameCursor.index>weightUntilPrevNewLine)){
                     this->frameCursor.index -= weightUntilPrevNewLine;
-                }else{//start of ope
+                }else{//start of rope
                     this->frameCursor.index = 0;
                     break;
                 }
                 weightUntilPrevNewLine = weight_until_prev_new_line(this->text.get(), this->frameCursor.index);
-                //place cursor at start of current
+                //place cursor at start of current line
                 uint16_t leftover = (weightUntilPrevNewLine-1) % this->getTextWidth();
-                this->frameCursor.index = this->frameCursor.index>leftover?this->frameCursor.index-leftover:0; 
+                this->frameCursor.index = this->frameCursor.index>leftover?this->frameCursor.index-leftover:0;
+                weightUntilPrevNewLine -= leftover; 
                 yDiff++;//prev newlined block
                 diff = diff>yDiff?diff-yDiff:0;
             }
@@ -229,7 +248,9 @@ void TextBox::frameCursorMove(int16_t diff){
         this->frameCursor.index = this->text->weight - 1;
     }
 
+    PLOG_ERROR << this->frameCursor.index;
     this->repositionFrameCursor();
+    PLOG_ERROR << this->frameCursor.index;
     this->repositionCursor();
 }
 
@@ -417,6 +438,64 @@ void TextBox::cursorWalkDown(uint16_t diff){
     //move back
     this->cursorWalkRight(rightDiff);
 }
+
+/*
+    move frameCursor all the way down
+*/
+void 
+TextBox::scrollToEnd(){
+    if(this->text->weight == 0)
+        return;
+
+    //count how many lines from end of rope to start of textBox height, 
+    //  or whole rope if number of lines is smaller than textBox height
+    size_t currentIndex = this->text->weight - 1;
+    uint16_t lines = 0;
+    while(true){
+        size_t weightUntilPreviousNewLine = weight_until_prev_new_line(this->text.get(), currentIndex);
+        lines += 1 + (weightUntilPreviousNewLine / this->getTextWidth());
+        if(currentIndex < weightUntilPreviousNewLine)
+            return;//smaller than textBox height, do nothing
+        currentIndex -= weightUntilPreviousNewLine;
+
+        if(lines > this->getTextHeight() - 1)
+            break;
+    }
+
+    //place frameCursor index at the end of rope
+    // and then go up number of lines needed so that end of rope is inside frame
+    this->frameCursor.index = this->text->weight - 1;
+    this->frameCursorMove((this->getTextHeight()-1) * -1);
+}
+
+/*
+    move frameCursor all the way up
+*/
+void 
+TextBox::scrollToBeginning(){
+    this->frameCursor.index = 0;
+    this->repositionFrameCursor();
+}
+
+/*
+    empties textBox
+*/
+void 
+TextBox::clear(){
+    //destroy current rope
+    rope_destroy(std::move(this->text));
+    //create new rope
+    this->text = rope_create_empty();
+    //frameCursor
+    this->frameCursor.index = 0;
+    this->frameCursor.x = 0;
+    this->frameCursor.y = 0;
+    //cursor
+    this->cursor.index = 0;
+    this->cursor.x = 0;
+    this->cursor.y = 0;
+}
+
 
 }
 

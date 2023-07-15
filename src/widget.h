@@ -104,9 +104,11 @@ public:
     uint16_t        getWidth() const;
     uint16_t        getHeight() const;
     void            setSize(const uint16_t,const uint16_t);
+    void            setCursorIndex(size_t);
     uint16_t        getTextWidth() const;
     uint16_t        getTextHeight() const;
     size_t          getCurrentIndex() const;
+    size_t          getTextLength() const;
     std::string     getText(size_t, size_t) const;
     std::string     getText() const;
     void            insertAtCursor(const char *);
@@ -118,6 +120,9 @@ public:
     void            cursorWalkUp(uint16_t);
     void            cursorWalkDown(uint16_t);
     void            frameCursorMove(int16_t);
+    void            scrollToEnd();
+    void            scrollToBeginning();
+    void            clear();
 
 
 };

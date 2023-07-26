@@ -96,6 +96,9 @@ public:
 };
 
 
+size_t                          ustrlen(const char *);
+size_t                          ustrlen(const std::string &);
+size_t                          u_index_at(const char *, size_t );
 std::unique_ptr<RopeNode>       rope_create_empty();
 std::unique_ptr<RopeNode>       rope_create_node(const char*);
 std::unique_ptr<RopeNode>       rope_create_node(const char*, std::bitset<8>);

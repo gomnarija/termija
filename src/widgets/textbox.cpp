@@ -119,7 +119,7 @@ TextBox::getText(size_t start, size_t end) const{
     std::string rope_text;
     RopeLeafIterator litrope(this->text.get(), start);
         RopeNode *c;
-        while((c = litrope.pop()) != nullptr && rope_text.length() < (end - start)){
+        while((c = litrope.pop()) != nullptr && ustrlen(rope_text) < (end - start)){
             if( c->text != nullptr )
                 rope_text += c->text.get();
         }
@@ -248,9 +248,7 @@ void TextBox::frameCursorMove(int16_t diff){
         this->frameCursor.index = this->text->weight - 1;
     }
 
-    PLOG_ERROR << this->frameCursor.index;
     this->repositionFrameCursor();
-    PLOG_ERROR << this->frameCursor.index;
     this->repositionCursor();
 }
 
@@ -294,7 +292,7 @@ void TextBox::insertAtCursor(const char *text){
         rope_insert_at(this->text.get(), this->cursor.index - 1, text);
     }
     //move cursor
-    size_t iWeight = strlen(text);
+    size_t iWeight = ustrlen(text);
     if(pWeight == this->text->weight - iWeight){
         cursorWalkRight(iWeight);
     }
@@ -320,7 +318,7 @@ void TextBox::insertLineAtCursor(const char *text){
         rope_insert_at(this->text.get(), this->cursor.index - 1, rope_create_node(text, FLAG_NEW_LINE));
     }
     //move cursor to new line
-    size_t iWeight = strlen(text);
+    size_t iWeight = ustrlen(text);
     if(pWeight == this->text->weight - iWeight){
         cursorWalkRight(iWeight);
     }

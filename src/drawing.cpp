@@ -74,18 +74,18 @@ void _tra_draw_node_down(RopeNode *node, uint16_t &x, uint16_t &y, uint16_t xPan
     }
     //whole or until end of frame
     size_t left = startIndex;
-    size_t right = std::min(strlen(node->text.get()), startIndex + (size_t)textWidth - x);
+    size_t right = std::min(ustrlen(node->text.get()), startIndex + (size_t)textWidth - x);
     //whole text or until textHeight
      //draw until right, excluding right
     while(left < right && y < textHeight){
         //draw
         Vector2 position{(float)xPaneStart+xStart+(x*(termija.fontWidth+termija.fontSpacing)), (float)yPaneStart+yStart+(y*(termija.fontHeight))};
-        _DrawTextEx(*font, node->text.get() + left, position, (float)termija.fontHeight, (float)termija.fontSpacing, LIGHTGRAY, right-left);
+        _DrawTextEx(*font, node->text.get() + u_index_at(node->text.get(), left), position, (float)termija.fontHeight, (float)termija.fontSpacing, LIGHTGRAY, right-left);
         //move position
         x += (right - left);
         //next part
         left = right;
-        right = std::min(strlen(node->text.get()), right+(size_t)(textWidth - 0));
+        right = std::min(ustrlen(node->text.get()), right+(size_t)(textWidth - 0));
         //next line
         if(x >= textWidth){
             y++;
@@ -179,8 +179,8 @@ void _DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, 
     float textOffsetX = 0.0f;       // Offset X to next character to draw
 
     float scaleFactor = fontSize/font.baseSize;         // Character quad scaling factor
-
-    for (int i = 0; i < size;)
+    size_t rSize = TextLength(text);
+    for (int i = 0, j=0; j < size && i < rSize;)
     {
         // Get next codepoint from byte string and glyph index in font
         int codepointByteCount = 0;
@@ -213,6 +213,7 @@ void _DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, 
         }
 
         i += codepointByteCount;   // Move text bytes counter to next codepoint
+        j ++;
     }
 }
 

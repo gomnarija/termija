@@ -25,7 +25,7 @@ inline const char               *DEFAULT_FONT_PATH                  = "res/fonts
 inline const uint8_t             DEFAULT_FONT_WIDTH                 = 8;
 inline const uint8_t             DEFAULT_FONT_HEIGHT                = 16;
 inline const uint8_t             DEFAULT_FONT_SPACING               = 1;
-inline const uint8_t             DEFAULT_TTF_GLYPH_COUNT            = 95;
+inline const uint16_t            DEFAULT_TTF_GLYPH_COUNT            = 666;
 //shaders
 inline const uint16_t            GLSL_VERSION                       = 330;
 inline const char               *DEFAULT_BASE_SHADER_PATH           = "res/shaders/base.vs";

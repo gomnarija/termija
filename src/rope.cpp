@@ -185,6 +185,34 @@ size_t RopeLeafIterator::local_start_index(){
     return this->localStartIndex;
 }
 
+
+size_t ustrlen(const std::string &s){
+    return ustrlen(s.c_str());
+}
+
+size_t ustrlen(const char *s){
+    size_t count = 0;
+    const char *p = s;
+    while (*p != 0){
+        if ((*p & 0xc0) != 0x80)
+            ++count;
+        ++p;
+    }
+    return count;
+}
+
+size_t u_index_at(const char *s, size_t count){
+    const char *p = s;
+    size_t index = 0;
+    while (*p != 0 && count > 0){
+        if ((*p & 0xc0) != 0x80)
+            --count;
+        ++p;
+        index++;
+    }
+    return index;
+}
+
 /*
     creates empty rope
 */
@@ -210,7 +238,8 @@ std::unique_ptr<RopeNode> rope_create_node(const char* text, std::bitset<8> effe
     std::unique_ptr<RopeNode> node = std::make_unique<RopeNode>();
     //add text
     node->text = std::make_unique<char[]>(strlen(text) + 1);
-    node->weight = sprintf(node->text.get(), "%s", text);
+    sprintf(node->text.get(), "%s", text);
+    node->weight = ustrlen(node->text.get());
     //flags
     node->flags->effects = effects;
     //cut while too long
@@ -237,7 +266,8 @@ std::unique_ptr<RopeNode> rope_create(const char* text){
     RopeNode *n = rope->left.get();
     //add text to the left node
     rope->left->text = std::make_unique<char[]>(strlen(text)+1);
-    rope->weight = rope->left->weight = sprintf(rope->left->text.get(), "%s", text);
+    sprintf(rope->left->text.get(), "%s", text);
+    rope->weight = rope->left->weight = ustrlen(rope->left->text.get());
 
     //cut while too long
     while(n->weight > MAX_WEIGHT){
@@ -454,7 +484,7 @@ size_t rope_weight_measure(const RopeNode &rope){
     
     //head
     if (current_node->left == nullptr && current_node->right == nullptr) {
-        return current_node->text != nullptr ? strlen(current_node->text.get()) : 0;
+        return current_node->text != nullptr ? ustrlen(current_node->text.get()) : 0;
     }
 
     //go left
@@ -472,7 +502,7 @@ size_t rope_weight_measure(const RopeNode &rope){
         
         //leaf
         if (current_node->left == nullptr && current_node->right == nullptr) {
-            total_weight += current_node->text != nullptr ? strlen(current_node->text.get()) : 0;
+            total_weight += current_node->text != nullptr ? ustrlen(current_node->text.get()) : 0;
         }
 
         current_node = current_node->right.get();
@@ -502,7 +532,7 @@ size_t _rope_weight_measure_node(const RopeNode &rope){
         
         //leaf
         if (current_node->left == nullptr && current_node->right == nullptr) {
-            total_weight += current_node->text != nullptr ? strlen(current_node->text.get()) : 0;
+            total_weight += current_node->text != nullptr ? ustrlen(current_node->text.get()) : 0;
         }
 
         current_node = current_node->right.get();
@@ -530,7 +560,7 @@ size_t rope_weight_measure_set(RopeNode *rope) {
         node_stack.pop();
 
         if (current_node->left == nullptr && current_node->right == nullptr) {
-            current_node->weight = current_node->text != nullptr ? std::strlen(current_node->text.get()) : 0;
+            current_node->weight = current_node->text != nullptr ? ustrlen(current_node->text.get()) : 0;
             total_weight += current_node->weight;
         }
         else {
@@ -665,10 +695,15 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
     }
 
     size_t length = strlen(node->text.get());
+    //index from character to byte
+    index = u_index_at(node->text.get(), index);
+
     if(index >= length){
         PLOG_ERROR << "index bigger than length, aborted. index : " << index;
         return;
     }
+
+
 
     //new split nodes
     left = std::make_unique<RopeNode>();

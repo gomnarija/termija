@@ -205,11 +205,18 @@ size_t u_index_at(const char *s, size_t count){
     const char *p = s;
     size_t index = 0;
     while (*p != 0 && count > 0){
-        if ((*p & 0xc0) != 0x80)
+        //continunation
+        if((*p & 0xc0) != 0x80)
             --count;
         ++p;
         index++;
     }
+    //don't end on continuation bit
+    while((*p & 0xc0) == 0x80 && p != 0){
+        ++p;
+        index++;
+    }
+
     return index;
 }
 

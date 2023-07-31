@@ -113,6 +113,8 @@ public:
     std::string     getText() const;
     void            insertAtCursor(const char *);
     void            insertLineAtCursor(const char *);
+    void            insertAtCursor(const char *, const uint8_t);
+    void            insertLineAtCursor(const char *, const uint8_t);
     void            deleteAtCursor();
     void            backspaceAtCursor();
     void            cursorWalkLeft(uint16_t);

@@ -298,6 +298,33 @@ void TextBox::insertAtCursor(const char *text){
     }
 }
 
+
+void TextBox::insertAtCursor(const char *text, const uint8_t flags){
+    if(text == nullptr){
+        PLOG_ERROR << "text is NULL, aborted.";
+        return;
+    }
+    else if(this->cursor.index > this->text->weight && this->cursor.index != 0){
+        PLOG_ERROR << "invalid cursor index, aborted.";
+        return;
+    }
+    size_t pWeight = this->text->weight;
+    //insert given text at cursor
+    if(this->cursor.index == 0){
+        rope_prepend(this->text.get(), rope_create(text, flags));
+    }else if(this->cursor.index == this->text->weight){
+        rope_append(this->text.get(), rope_create(text, flags));
+    }
+    else{
+        rope_insert_at(this->text.get(), this->cursor.index - 1, rope_create(text, flags));
+    }
+    //move cursor
+    size_t iWeight = ustrlen(text);
+    if(pWeight == this->text->weight - iWeight){
+        cursorWalkRight(iWeight);
+    }
+}
+
 void TextBox::insertLineAtCursor(const char *text){
     if(text == nullptr){
         PLOG_ERROR << "text is NULL, aborted.";
@@ -316,6 +343,32 @@ void TextBox::insertLineAtCursor(const char *text){
     }
     else{
         rope_insert_at(this->text.get(), this->cursor.index - 1, rope_create_node(text, FLAG_NEW_LINE));
+    }
+    //move cursor to new line
+    size_t iWeight = ustrlen(text);
+    if(pWeight == this->text->weight - iWeight){
+        cursorWalkRight(iWeight);
+    }
+}
+
+void TextBox::insertLineAtCursor(const char *text, const uint8_t flags){
+    if(text == nullptr){
+        PLOG_ERROR << "text is NULL, aborted.";
+        return;
+    }
+    else if(this->cursor.index > this->text->weight && this->cursor.index != 0){
+        PLOG_ERROR << "invalid cursor index, aborted.";
+        return;
+    }
+    size_t pWeight = this->text->weight;
+    //insert given text, with new line flag, at cursor
+    if(this->cursor.index == 0){
+        rope_prepend(this->text.get(), rope_create_node(text, flags | FLAG_NEW_LINE));
+    }else if(this->cursor.index == this->text->weight){
+        rope_append(this->text.get(), rope_create_node(text, flags | FLAG_NEW_LINE));
+    }
+    else{
+        rope_insert_at(this->text.get(), this->cursor.index - 1, rope_create_node(text, flags | FLAG_NEW_LINE));
     }
     //move cursor to new line
     size_t iWeight = ustrlen(text);

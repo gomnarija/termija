@@ -15,7 +15,8 @@ inline const size_t                 MAX_WEIGHT = 512;
 
 
 //flags
-inline const uint8_t                FLAG_NEW_LINE = 0b00000001;
+inline const uint8_t                FLAG_NEW_LINE   = 0b00000001;
+inline const uint8_t                FLAG_INVERT     = 0b00000010;
 
 struct RopeNode;
 
@@ -99,10 +100,14 @@ public:
 size_t                          ustrlen(const char *);
 size_t                          ustrlen(const std::string &);
 size_t                          u_index_at(const char *, size_t );
+bool                            has_flags(RopeFlags *, const uint8_t);
+
+
 std::unique_ptr<RopeNode>       rope_create_empty();
 std::unique_ptr<RopeNode>       rope_create_node(const char*);
 std::unique_ptr<RopeNode>       rope_create_node(const char*, std::bitset<8>);
 std::unique_ptr<RopeNode>       rope_create(const char*);
+std::unique_ptr<RopeNode>       rope_create(const char*, std::bitset<8>);
 void                            rope_destroy(std::unique_ptr<RopeNode>);
 std::unique_ptr<RopeNode>       rope_concat(std::unique_ptr<RopeNode>,const char*);
 std::unique_ptr<RopeNode>       rope_concat(std::unique_ptr<RopeNode>,std::unique_ptr<RopeNode>);

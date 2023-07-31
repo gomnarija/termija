@@ -57,6 +57,19 @@ TEST_CASE( "Rope Node is created", "[rope_create_node]" ) {
         REQUIRE( rope->text != nullptr );
         REQUIRE( strcmp(rope->text.get(), "some_text_čćšđž") == 0 );
     }
+
+    
+    SECTION("creating rope node with valid text, inverted"){
+        const std::unique_ptr<RopeNode> rope = rope_create_node("some_text", FLAG_INVERT);
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->left == nullptr );
+        REQUIRE( rope->right == nullptr );
+        REQUIRE( rope->weight == 9 );
+        REQUIRE( rope->text != nullptr );
+        REQUIRE( strcmp(rope->text.get(), "some_text") == 0 );
+        REQUIRE( has_flags(rope->flags.get(), FLAG_INVERT) == true );
+    }
 }
 
 TEST_CASE( "Rope is created", "[rope_create]" ) {
@@ -87,6 +100,21 @@ TEST_CASE( "Rope is created", "[rope_create]" ) {
         REQUIRE( strcmp(rope->left->text.get(), "some_text_ćč") == 0 );
     }
     
+    SECTION("creating rope with valid text, inverted"){
+        const std::unique_ptr<RopeNode> rope = rope_create("some_text", FLAG_INVERT);
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->left != nullptr );
+        REQUIRE( rope->right == nullptr );
+        REQUIRE( rope->weight == 9 );
+        REQUIRE( rope->text == nullptr );
+        REQUIRE( rope->left->weight == 9 );
+        REQUIRE( rope->left->text != nullptr );
+        REQUIRE( strcmp(rope->left->text.get(), "some_text") == 0 );
+        REQUIRE( has_flags(rope->left->flags.get(), FLAG_INVERT) == true );
+
+    }
+    
     SECTION("creating rope with text length bigger than MAX_WEIGHT"){
         const size_t length = MAX_WEIGHT*3;
         const std::string text(length, 'm');
@@ -114,6 +142,8 @@ TEST_CASE( "Rope is created", "[rope_create]" ) {
 
         REQUIRE( rope == nullptr );
     }
+        
+
 }
 
 
@@ -168,6 +198,32 @@ TEST_CASE( "Rope is concatenated", "[rope_concat]" ) {
         while((c = litrope.pop()) != nullptr){
             REQUIRE( c->text != nullptr );
             rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "some_left_text_some_right_text_čć" );
+    }
+
+    SECTION("concatenate two ropes, inverted"){
+        std::unique_ptr<RopeNode> left_rope = rope_create("some_left_text_", FLAG_INVERT);
+        std::unique_ptr<RopeNode> right_rope = rope_create("some_right_text_čć");
+        std::unique_ptr<RopeNode> concat_rope = rope_concat(std::move(left_rope), std::move(right_rope));
+
+        REQUIRE( left_rope == nullptr );
+        REQUIRE( right_rope == nullptr );
+        REQUIRE( concat_rope != nullptr );
+        REQUIRE( concat_rope->weight == 15 );
+        std::string rope_text;
+        RopeLeafIterator litrope(concat_rope.get());
+        RopeNode *c;
+        size_t i = 0;
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+            if(i==0)
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
+            else{
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == false );
+            }
+            i++;
         }
         REQUIRE( rope_text == "some_left_text_some_right_text_čć" );
     }
@@ -318,6 +374,38 @@ TEST_CASE( "Rope is prepended", "[rope_prepend]" ) {
         REQUIRE( rope_text == "pre_the_with_again_some_more_pre_some_pre_text_ćč_some_text" );
     }
 
+    SECTION("prepend rope multiple, inverted"){
+        std::unique_ptr<RopeNode> pre_rope = rope_create("some_pre_text_");
+        rope_prepend(pre_rope.get(), rope_create("pre_pre"));
+        rope_prepend(pre_rope.get(), rope_create("pre_pre", FLAG_INVERT));
+        rope_prepend(pre_rope.get(), rope_create("pre_pre"));
+        rope_prepend(pre_rope.get(), rope_create("pre_pre", FLAG_INVERT));
+        rope_prepend(pre_rope.get(), rope_create("pre_pre"));
+        rope_prepend(pre_rope.get(), "pre_pre");
+
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_prepend(rope.get(), std::move(pre_rope));
+
+        REQUIRE( pre_rope == nullptr );
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 65 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+        size_t i = 0;
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+            if(i==2 || i==4)
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
+            else{
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == false );
+            }
+            i++;
+        }
+        REQUIRE( rope_text == "pre_prepre_prepre_prepre_prepre_prepre_presome_pre_text_some_text" );
+    }
 
     SECTION("prepend empty text"){
         std::unique_ptr<RopeNode> rope = rope_create("some_text");
@@ -401,6 +489,41 @@ TEST_CASE( "Rope is appended", "[rope_append]" ) {
     }
 
     SECTION("append rope multiple"){
+        std::unique_ptr<RopeNode> post_rope = rope_create("_some_post_text");
+        rope_append(post_rope.get(), rope_create("_", FLAG_INVERT));
+        rope_append(post_rope.get(), rope_create("p", FLAG_INVERT));
+        rope_append(post_rope.get(), "o");
+        rope_append(post_rope.get(), "s");
+        rope_append(post_rope.get(), "t");
+        rope_append(post_rope.get(), "_and_some");
+        rope_append(post_rope.get(), "_");
+        rope_append(post_rope.get(), "more");
+
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), std::move(post_rope));
+
+        REQUIRE( post_rope == nullptr );
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 43 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+        size_t i=0;
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+            if(i==2 || i==3)
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
+            else{
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == false );
+            }
+            i++;
+        }
+        REQUIRE( rope_text == "some_text_some_post_text_post_and_some_more" );
+    }
+    
+    SECTION("append rope multiple, inverted"){
         std::unique_ptr<RopeNode> post_rope = rope_create("_some_post_text");
         rope_append(post_rope.get(), "_");
         rope_append(post_rope.get(), "p");
@@ -589,6 +712,38 @@ TEST_CASE( "Inserted at index inside of rope", "[rope_insert_at]" ) {
         REQUIRE( rope_text == "spre_ome_some__umetak_jos_jedantext_textpost_" );
     }
 
+    SECTION("insert rope at index inside rope, inverted"){
+        std::unique_ptr<RopeNode> in_rope = rope_create("_some_text", FLAG_INVERT);
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_insert_at(rope.get(), 3, std::move(in_rope));
+        rope_insert_at(rope.get(), 9, "_umetak_jos_jedan");
+        rope_insert_at(rope.get(), 0, "pre_");
+        rope_insert_at(rope.get(), 39, "post_");
+
+
+
+        REQUIRE( in_rope == nullptr );
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 45 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+        size_t i=0;
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+            if(i==3 || i==5){
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
+            }
+            else{
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == false );
+            }
+            i++;
+        }
+        REQUIRE( rope_text == "spre_ome_some__umetak_jos_jedantext_textpost_" );
+    }
+
     SECTION("insert text at index inside rope"){
         std::unique_ptr<RopeNode> rope = rope_create("some_text");
         rope_insert_at(rope.get(), 3, "_some_text");
@@ -759,6 +914,25 @@ TEST_CASE( "Delete at index inside of rope", "[rope_delete_at]" ) {
         while((c = litrope.pop()) != nullptr){
             REQUIRE( c->text != nullptr );
             rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "some_text" );
+    }
+
+    SECTION("delete text at index inside rope, inverted"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text_to_delete_text", FLAG_INVERT);
+        rope_delete_at(rope.get(), 3, 15);
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 9 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+            REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
         }
         REQUIRE( rope_text == "some_text" );
     }

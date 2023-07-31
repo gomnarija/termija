@@ -34,12 +34,17 @@ void tra_terminate(){
     tra_clear_panes();
 
     //font
-    if(termija.font != nullptr)
-        UnloadFont(*(termija.font));
+    if(termija.font.glyphCount > 0)
+        UnloadFont(termija.font);
     //shaders
-    UnloadShader(termija.backShader);
-    UnloadShader(termija.textShader);
-    UnloadShader(termija.postShader);
+    UnloadShader(BLOOM_SHADER);
+    UnloadShader(POST_SHADER);
+    UnloadShader(ALPHA_DISCARD_SHADER);
+
+
+    //render textures
+    UnloadRenderTexture(termija.renderTexture);
+    UnloadRenderTexture(termija.completeFrame);
 
     CloseWindow();
 }
@@ -64,6 +69,7 @@ void tra_init_termija(uint16_t windowWidth,uint16_t windowHeight,const char * wi
 
 void tra_init_termija(uint16_t windowWidth,uint16_t windowHeight,const char * windowTitle,uint8_t paneMargin){
     Termija& termija = tra_get_instance();
+    std::string workingDirectory = GetWorkingDirectory() + std::string("\\");
 
     //plog
     plog::init(plog::debug, "termija.log");
@@ -79,17 +85,19 @@ void tra_init_termija(uint16_t windowWidth,uint16_t windowHeight,const char * wi
     //font
     tra_load_font();
 
-    //shaders TODO:loading nondefault shaders
-    termija.backShader = LoadShader(NULL, TextFormat(DEFAULT_BACK_SHADER_PATH, GLSL_VERSION));
-    termija.textShader = LoadShader(NULL, TextFormat(DEFAULT_TEXT_SHADER_PATH, GLSL_VERSION));
-    termija.postShader = LoadShader(TextFormat(DEFAULT_BASE_SHADER_PATH, GLSL_VERSION), TextFormat(DEFAULT_POST_SHADER_PATH, GLSL_VERSION));
-
+    //textures
     termija.backTexture         = LoadTexture(DEFAULT_BACK_TEXTURE_PATH);
     termija.backTexture.width   = windowWidth;
     termija.backTexture.height  = windowHeight;
     
-    
-    termija.renderTexture   = LoadRenderTexture(termija.windowWidth, termija.windowHeight);
+    //shaders
+    ALPHA_DISCARD_SHADER        = LoadShader(NULL, TextFormat((workingDirectory+std::string(DEFAULT_ALPHA_DISCARD_SHADER_PATH)).c_str(), GLSL_VERSION));
+    BLOOM_SHADER                = LoadShader(NULL, TextFormat((workingDirectory+std::string(DEFAULT_BLOOM_SHADER_PATH)).c_str(), GLSL_VERSION));
+    POST_SHADER                 = LoadShader(TextFormat((workingDirectory+std::string(DEFAULT_BASE_SHADER_PATH)).c_str()), 
+                                                TextFormat((workingDirectory+std::string(DEFAULT_POST_SHADER_PATH)).c_str(), GLSL_VERSION));
+
+    termija.renderTexture       = LoadRenderTexture(termija.windowWidth, termija.windowHeight);
+    termija.completeFrame       = LoadRenderTexture(termija.windowWidth, termija.windowHeight);
 
     //mouse
     SetMousePosition(windowWidth/2, windowHeight/2);
@@ -133,14 +141,12 @@ void tra_draw(){
     Termija &termija = Termija::instance();
     termija.time += GetFrameTime();
     //update shader uniforms
-    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "time"), &termija.time, SHADER_UNIFORM_FLOAT);
-    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "justLooking"), &termija.justLooking, SHADER_UNIFORM_VEC4);
+    SetShaderValue(POST_SHADER, GetShaderLocation(POST_SHADER, "time"), &termija.time, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(POST_SHADER, GetShaderLocation(POST_SHADER, "justLooking"), &termija.justLooking, SHADER_UNIFORM_VEC4);
     //render onto texture
     BeginTextureMode(termija.renderTexture);
-        //draw back image
-        tra_draw_back(termija.windowWidth, termija.windowHeight,  &(termija.backTexture), &(termija.backShader));
         //draw panes
-        BeginShaderMode(termija.textShader);
+            ClearBackground(BLANK);
             for(size_t i=0;i<termija.panes.size();i++){
                 Pane *pane = termija.panes[i].get();
                 if(pane == nullptr){
@@ -148,45 +154,70 @@ void tra_draw(){
                     continue;
                 }
                 tra_draw_pane(*pane);
+
             }
-        EndShaderMode();
     EndTextureMode();
-    //draw rendered texture
+    //draw renderedTexture onto background
+    BeginTextureMode(termija.completeFrame);
+        ClearBackground(BLANK); 
+        tra_draw_back(termija.windowWidth, termija.windowHeight,  &(termija.backTexture), nullptr);
+        if(BLOOM_SHADER.id > 0)
+            BeginShaderMode(BLOOM_SHADER);
+                DrawTextureRec(termija.renderTexture.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);   
+        if(BLOOM_SHADER.id > 0);
+            EndShaderMode();
+    EndTextureMode();
+    //draw
     BeginDrawing();
-        BeginShaderMode(termija.postShader);
+        BeginShaderMode(POST_SHADER);
             ClearBackground(BLACK); 
-            DrawTextureRec(termija.renderTexture.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);
+            DrawTextureRec(termija.completeFrame.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);   
         EndShaderMode();
     EndDrawing();
+
+
+    tra_unload_render_textures();
 }
+
+
 
 
 void tra_draw_current(){
     Termija &termija = Termija::instance();
     termija.time += GetFrameTime();
     //update shader uniforms
-    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "time"), &termija.time, SHADER_UNIFORM_FLOAT);
-    SetShaderValue(termija.postShader, GetShaderLocation(termija.postShader, "justLooking"), &termija.justLooking, SHADER_UNIFORM_VEC4);
+    SetShaderValue(POST_SHADER, GetShaderLocation(POST_SHADER, "time"), &termija.time, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(POST_SHADER, GetShaderLocation(POST_SHADER, "justLooking"), &termija.justLooking, SHADER_UNIFORM_VEC4);
     //render onto texture
     BeginTextureMode(termija.renderTexture);
-        //draw back image
-        tra_draw_back(termija.windowWidth, termija.windowHeight,  &(termija.backTexture), &(termija.backShader));
         //draw current pane
-        BeginShaderMode(termija.textShader);
-                if(termija.currentPane == nullptr){
-                    PLOG_ERROR << "current pane is NULL, aborted.";
-                }else{
-                    tra_draw_pane(*(termija.currentPane));
-                }
-        EndShaderMode();
+            ClearBackground(BLANK);
+            if(termija.currentPane == nullptr){
+                PLOG_ERROR << "current pane is NULL, aborted.";
+            }else{
+                tra_draw_pane(*(termija.currentPane));
+            }
     EndTextureMode();
-    //draw rendered texture
+    //draw renderedTexture onto background
+    BeginTextureMode(termija.completeFrame);
+        ClearBackground(BLANK); 
+        tra_draw_back(termija.windowWidth, termija.windowHeight,  &(termija.backTexture), nullptr);
+        if(BLOOM_SHADER.id > 0)
+            BeginShaderMode(BLOOM_SHADER);
+                DrawTextureRec(termija.renderTexture.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);   
+        if(BLOOM_SHADER.id > 0);
+            EndShaderMode();
+    EndTextureMode();
+    //draw
     BeginDrawing();
-        BeginShaderMode(termija.postShader);
+        BeginShaderMode(POST_SHADER);
             ClearBackground(BLACK); 
-            DrawTextureRec(termija.renderTexture.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);
+            DrawTextureRec(termija.completeFrame.texture, {0,0,(float)termija.windowWidth, (float)-termija.windowHeight}, {0,0}, RAYWHITE);   
         EndShaderMode();
     EndDrawing();
+
+
+    tra_unload_render_textures();
 }
 
 
@@ -461,9 +492,9 @@ void tra_load_font(const char *fontPath, uint8_t fontSize, uint16_t glyphCount){
         return;
     }
     Termija& termija = Termija::instance();
-    termija.font = std::make_unique<Font>(LoadFontEx(fontPath, fontSize, NULL, glyphCount));
+    termija.font = LoadFontEx(fontPath, fontSize, NULL, glyphCount);
 
-    if(termija.font->glyphCount == 0){
+    if(termija.font.glyphCount == 0){
         PLOG_ERROR << "failed to load font: " << fontPath;
         return;
     }
@@ -471,14 +502,32 @@ void tra_load_font(const char *fontPath, uint8_t fontSize, uint16_t glyphCount){
 
 Font* tra_get_font(){
     Termija& termija = Termija::instance();
-    return termija.font.get();
+    return &(termija.font);
 }
+
+void tra_push_render_texture_to_garbage(RenderTexture2D renderTexture2D){
+    Termija& termija = Termija::instance();
+    termija.renderTextureGarbageStack.push(renderTexture2D);
+}
+
+void tra_unload_render_textures(){
+    Termija& termija = Termija::instance();
+    while(!termija.renderTextureGarbageStack.empty()){
+        UnloadRenderTexture(termija.renderTextureGarbageStack.top());
+        termija.renderTextureGarbageStack.pop();
+    }
+}
+
+RenderTexture2D tra_get_render_texture(){
+    Termija& termija = Termija::instance();
+    return termija.renderTexture;
+}
+
 
 float tra_delta_time(){
     //raylib
     return GetFrameTime();
 }
-
 
 
 }

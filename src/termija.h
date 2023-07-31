@@ -29,12 +29,18 @@ inline const uint16_t            DEFAULT_TTF_GLYPH_COUNT            = 666;
 //shaders
 inline const uint16_t            GLSL_VERSION                       = 330;
 inline const char               *DEFAULT_BASE_SHADER_PATH           = "res/shaders/base.vs";
-inline const char               *DEFAULT_BACK_SHADER_PATH           = "res/shaders/back.fs";
-inline const char               *DEFAULT_TEXT_SHADER_PATH           = "res/shaders/text.fs";
 inline const char               *DEFAULT_POST_SHADER_PATH           = "res/shaders/post.fs";
+inline const char               *DEFAULT_ALPHA_DISCARD_SHADER_PATH  = "res/shaders/alpha_discard.fs";
+inline const char               *DEFAULT_BLOOM_SHADER_PATH          = "res/shaders/bloom.fs";
+
+inline Shader                   ALPHA_DISCARD_SHADER;
+inline Shader                   BLOOM_SHADER;
+inline Shader                   POST_SHADER;
+
+inline const Color              TERMIJA_COLOR                       = (Color){ 238, 232, 213, 225};
+inline const Color              ALPHA_DISCARD                       = (Color){ 26, 26, 26, 255 };
 //res
 inline const char               *DEFAULT_BACK_TEXTURE_PATH           = "res/screen.png";
-
 
 
 
@@ -115,13 +121,12 @@ class Termija final{
         uint16_t                            windowMargin;
         std::string                         windowTitle;
         uint8_t                             paneMargin;
-        std::unique_ptr<Font>               font;
-        Shader                              backShader;
-        Shader                              textShader;
-        Shader                              postShader;
+        Font                                font;
         Texture2D                           backTexture;
         RenderTexture2D                     renderTexture;
+        RenderTexture2D                     completeFrame;
         float                               time;
+        std::stack<RenderTexture2D>         renderTextureGarbageStack;
 
     public:
         std::string                         fontPath;
@@ -165,6 +170,9 @@ class Termija final{
         friend Pane*            tra_split_pane_horizontally(Pane &, uint16_t);
         friend void             tra_load_font(const char*, uint8_t, uint16_t);
         friend Font*            tra_get_font();
+        friend void             tra_push_render_texture_to_garbage(RenderTexture2D);
+        friend void             tra_unload_render_textures();
+        friend RenderTexture2D  tra_get_render_texture();
 
     public:
         friend void             tra_draw();
@@ -230,10 +238,17 @@ void        tra_draw_text(RopeNode *, uint16_t, uint16_t, uint16_t, uint16_t, ui
 void        tra_draw_text(RopeNode *, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, Cursor &);
 void        tra_draw_cursor(uint16_t, uint16_t, Cursor &);
 void        tra_draw_back(uint16_t , uint16_t , const Texture2D *, const Shader *);
+Texture2D   invert_font(Texture2D);
+void        tra_push_render_texture_to_garbage(RenderTexture2D);
+void        tra_unload_render_textures();
+RenderTexture2D        tra_get_render_texture();
+
+
 //font
 void        tra_load_font();
 void        tra_load_font(const char*, uint8_t, uint16_t);
 Font*       tra_get_font();
+Texture2D*  tra_get_font_inverted();
 
 //config
 void        tra_load_config(const char *);

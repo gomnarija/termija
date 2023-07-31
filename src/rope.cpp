@@ -220,6 +220,11 @@ size_t u_index_at(const char *s, size_t count){
     return index;
 }
 
+bool has_flags(RopeFlags *ropeFlags, const uint8_t flags){
+    return ropeFlags->effects.to_ulong() & flags;
+}
+
+
 /*
     creates empty rope
 */
@@ -275,6 +280,34 @@ std::unique_ptr<RopeNode> rope_create(const char* text){
     rope->left->text = std::make_unique<char[]>(strlen(text)+1);
     sprintf(rope->left->text.get(), "%s", text);
     rope->weight = rope->left->weight = ustrlen(rope->left->text.get());
+
+    //cut while too long
+    while(n->weight > MAX_WEIGHT){
+        _split_node(n, std::max((n->weight / 2), n->weight-MAX_WEIGHT), n->left, n->right);
+        n = n->left.get();
+    }
+
+    return std::move(rope);
+}
+
+/*
+    creates rope with the given text and flags
+*/
+std::unique_ptr<RopeNode> rope_create(const char* text, std::bitset<8> effects){
+    if(text == nullptr){
+        PLOG_ERROR << "given text is NULL, aborted.";
+        return nullptr;
+    }
+    //create new rope, and it's left node
+    std::unique_ptr<RopeNode> rope = std::make_unique<RopeNode>();
+    rope->left = std::make_unique<RopeNode>();
+    RopeNode *n = rope->left.get();
+    //add text to the left node
+    rope->left->text = std::make_unique<char[]>(strlen(text)+1);
+    sprintf(rope->left->text.get(), "%s", text);
+    rope->weight = rope->left->weight = ustrlen(rope->left->text.get());
+    //flags to the left node
+    rope->left->flags->effects = effects;
 
     //cut while too long
     while(n->weight > MAX_WEIGHT){
@@ -687,6 +720,14 @@ void _split_flags(RopeFlags *flags, RopeFlags *left, RopeFlags *right){
     if(flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE){
         flags->effects ^= FLAG_NEW_LINE;
         right->effects |= FLAG_NEW_LINE;
+    }else{
+        //default:
+        //remove from node
+        //move to left and right
+        uint8_t fe = flags->effects.to_ulong();
+        flags->effects ^= fe;
+        left->effects   = fe;
+        right->effects  = fe;
     }
 }
 

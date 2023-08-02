@@ -117,6 +117,7 @@ void                            rope_append(RopeNode*,const char*);
 void                            rope_append(RopeNode*,std::unique_ptr<RopeNode>);
 void                            rope_insert_at(RopeNode*,size_t,const char*);
 void                            rope_insert_at(RopeNode*,size_t,std::unique_ptr<RopeNode>);
+void                            rope_insert_flag_at(RopeNode*, size_t, size_t, uint8_t);
 void                            rope_delete_at(RopeNode*, size_t, size_t);
 size_t                          rope_weight_measure(const RopeNode&);
 size_t                          rope_weight_measure_set(RopeNode*);

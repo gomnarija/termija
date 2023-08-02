@@ -525,8 +525,8 @@ TEST_CASE( "Rope is appended", "[rope_append]" ) {
     
     SECTION("append rope multiple, inverted"){
         std::unique_ptr<RopeNode> post_rope = rope_create("_some_post_text");
-        rope_append(post_rope.get(), "_");
-        rope_append(post_rope.get(), "p");
+        rope_append(post_rope.get(), rope_create("_", FLAG_INVERT));
+        rope_append(post_rope.get(), rope_create("p", FLAG_INVERT));
         rope_append(post_rope.get(), "o");
         rope_append(post_rope.get(), "s");
         rope_append(post_rope.get(), "t");
@@ -544,10 +544,17 @@ TEST_CASE( "Rope is appended", "[rope_append]" ) {
         std::string rope_text;
         RopeLeafIterator litrope(rope.get());
         RopeNode *c;
-
+        size_t i=0;
         while((c = litrope.pop()) != nullptr){
             REQUIRE( c->text != nullptr );
             rope_text += c->text.get();
+            if(i==2 || i==3){
+                REQUIRE(has_flags(c->flags.get(), FLAG_INVERT) == true );
+            }else{
+                REQUIRE(has_flags(c->flags.get(), FLAG_INVERT) == false );
+            }
+
+            i++;
         }
         REQUIRE( rope_text == "some_text_some_post_text_post_and_some_more" );
     }
@@ -1111,4 +1118,89 @@ TEST_CASE( "Rope splited at index", "[rope_split_at]" ) {
         REQUIRE( new_rope_text == "text" );
 
     }
+}
+
+
+TEST_CASE( "Insert flags at index", "[rope_insert_flag_at]" ) {
+
+    SECTION("inserts inverted flag at given index"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_end");
+        rope_insert_flag_at(rope.get(), 9, 12, FLAG_INVERT);
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 25 );
+        
+        
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+        size_t i=0;
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->flags.get() != nullptr );
+            if(i>8 && i<21)
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
+            else
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == false );
+            
+            i += c->weight;
+        }
+    }
+    
+    SECTION("inserts inverted flag at given index"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_end");
+        rope_insert_flag_at(rope.get(), 4, 17, FLAG_INVERT);
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 25 );
+        
+        
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+        size_t i=0;
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->flags.get() != nullptr );
+            if(i>3 && i<20)
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
+            else
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == false );
+            
+            i += c->weight;
+        }
+    
+    }
+
+    SECTION("inserts inverted flag at given index"){
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_iap");
+        rope_append(rope.get(), "_end_more");
+        rope_insert_flag_at(rope.get(), 4, 20, FLAG_INVERT);
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 30 );
+        
+        
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+        size_t i=0;
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->flags.get() != nullptr );
+            if(i>3 && i<23)
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == true );
+            else
+                REQUIRE( has_flags(c->flags.get(), FLAG_INVERT) == false );
+            
+            i += c->weight;
+        }
+    
+    }
+
 }

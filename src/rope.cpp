@@ -496,6 +496,47 @@ void rope_insert_at(RopeNode *rope, size_t index, std::unique_ptr<RopeNode> prop
 }
 
 /*
+    inserts given flags at given range
+*/
+void rope_insert_flag_at(RopeNode *rope, size_t index, size_t length, uint8_t flags){
+    if(rope == nullptr){
+        PLOG_ERROR << "given rope is NULL, aborted.";
+        return;        
+    }else if(length <= 0 || (index+length) >= rope->weight){
+        PLOG_ERROR << "invalid index/length combination, aborted.";
+        return;
+    }
+
+
+    RopeLeafIterator litrope(rope, index);
+    RopeNode *c;
+    size_t i=index;
+    while((c = litrope.pop()) != nullptr && i < (index+length)-1){
+        if(i == index && litrope.local_start_index() > 0){//first one needs to be split,
+            std::unique_ptr<RopeNode> right_side = rope_split_at(rope, index);
+            if(right_side != nullptr){// right side (left_most) gets the flag
+                RopeNode *r_left_most = rope_left_most_node(*right_side); 
+                r_left_most->flags->effects = flags;
+                rope_append(rope, std::move(right_side));
+            }
+        }else if((i+c->weight) > (index+length)-1){//last one needs to be split,
+            std::unique_ptr<RopeNode> right_side = rope_split_at(rope, (index+length)-1);
+            RopeNode *left_side = rope_node_at_index(*rope, (index+length)-1, nullptr);
+            if(left_side != nullptr){// left side gets the flag
+                left_side->flags->effects = flags;
+            }
+            if(right_side != nullptr){
+                rope_append(rope, std::move(right_side));
+            }
+            break;
+        }else{
+            c->flags->effects = flags;
+        }
+        i += c->weight;
+    }
+}
+
+/*
     removes the given number of characters at the given index
 */
 void rope_delete_at(RopeNode *rope, size_t index, size_t length){

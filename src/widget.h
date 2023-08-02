@@ -115,6 +115,7 @@ public:
     void            insertLineAtCursor(const char *);
     void            insertAtCursor(const char *, const uint8_t);
     void            insertLineAtCursor(const char *, const uint8_t);
+    void            inertFlagAtRange(size_t, size_t, uint8_t);
     void            deleteAtCursor();
     void            backspaceAtCursor();
     void            cursorWalkLeft(uint16_t);

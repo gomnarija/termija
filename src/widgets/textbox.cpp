@@ -377,6 +377,14 @@ void TextBox::insertLineAtCursor(const char *text, const uint8_t flags){
     }
 }
 
+void TextBox::inertFlagAtRange(size_t index, size_t length, uint8_t flags){
+    if((index+length) >= this->text->weight || length <= 0){
+        PLOG_ERROR << "invalid range, aborted.";
+        return;
+    }
+    rope_insert_flag_at(this->text.get(), index, length, flags);
+}
+
 void TextBox::deleteAtCursor(){
     if(this->cursor.index > this->text->weight && this->cursor.index != 0){
         PLOG_ERROR << "invalid cursor index, aborted.";

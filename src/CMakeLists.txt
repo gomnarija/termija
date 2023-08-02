@@ -23,6 +23,7 @@ ${SOURCE_DIR}/pane.cpp
 ${SOURCE_DIR}/drawing.cpp                  
 ${SOURCE_DIR}/rope.cpp
 ${SOURCE_DIR}/config.cpp
+${SOURCE_DIR}/widgets/box.cpp
 ${SOURCE_DIR}/widgets/text.cpp
 ${SOURCE_DIR}/widgets/textbox.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} PARENT_SCOPE)

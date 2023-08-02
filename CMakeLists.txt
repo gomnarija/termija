@@ -4,8 +4,8 @@ project(termija)
 include(FetchContent)
 
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out)
-set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/termija/out)
+set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/termija/src)
 
 FetchContent_Declare(
   plog
@@ -15,6 +15,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(plog)
 
 add_subdirectory(${SOURCE_DIR})
+
+
+
+set (CMAKE_CXX_FLAGS "-fsanitize=address")
+set (CMAKE_CXX_FLAGS "-static-libasan")
 
 #if (${CMAKE_BUILD_TYPE} EQUAL "DEBUG")
   add_subdirectory(tests)

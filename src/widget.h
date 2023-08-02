@@ -130,9 +130,33 @@ public:
 
 };
 
+/*
+    Box Widget
+*/
+class Box : public Widget{
+private:
+
+    bool                        isActive;
+    uint16_t                    width;
+    uint16_t                    height;
+
+public:
+    Box(const uint16_t,const uint16_t, const uint16_t, const uint16_t);
+    Box(const Box&)               = delete;
+    void operator=(Box const&)     = delete;
+    ~Box();
+
+    void            update() override;
+    void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
+    void            on_pane_resize(const int16_t,const int16_t) override;
+    uint16_t        getWidth();
+    uint16_t        getHeight();
+    void            resize(uint16_t, uint16_t);
+    void            activate(bool);
+
+};
+
 }
-
-
 
 #endif
 

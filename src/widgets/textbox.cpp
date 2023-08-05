@@ -141,18 +141,19 @@ void TextBox::repositionCursor(){
         this->cursor.index = this->text->weight>0?this->text->weight-1:0;
         return;
     }
-    size_t localIndex = 0;//cursor index goes from 0 to n
+    //cursor index goes from 0 to n
     size_t ropeIndex = this->cursor.index==this->text->weight?this->cursor.index-1:this->cursor.index;
     ///x
-    //if cursor index is at rope weight
-    uint8_t endOfRopeAdd = this->cursor.index==this->text->weight?1:0;
-    this->cursor.x = ((weight_until_prev_new_line(this->text.get(), ropeIndex)-1) + endOfRopeAdd) % this->getTextWidth();
+    bool        isOnNewLineAndEnd = this->cursor.index==this->text->weight && this->cursorIsOnNewLine();//rope_has_flag_at(*(this->text), this->cursor.index == 0 ? 0 : this->cursor.index-1, 1, FLAG_NEW_LINE);
+    //if cursor index is at rope weight, and not on new line add 1 to point to the next avaliable
+    size_t      weightUntilPrevNewLine = weight_until_prev_new_line(this->text.get(), ropeIndex);
+    uint8_t     endOfRopeAdd = this->cursor.index==this->text->weight && !this->cursorIsOnNewLine() ? 1:0;
+    this->cursor.x = isOnNewLineAndEnd ? 0 : ((weightUntilPrevNewLine-1) + endOfRopeAdd) % this->getTextWidth();
     ///y relative to the frameCursor
     this->cursor.isDrawn = false;//not inside frame by default
-    uint16_t    currentY=(this->cursor.x==0&&this->cursor.index==this->text->weight)?1:0;
+    uint16_t    currentY=(this->cursor.x==0&&this->cursor.index==this->text->weight) || isOnNewLineAndEnd ?1:0;
     //starting index
     size_t      currentIndex = ropeIndex;
-    size_t      weightUntilPrevNewLine = 0;
     //count y distance from cursor to frameCursor
     while(currentY <= this->getTextHeight() && currentIndex >= this->frameCursor.index){
         weightUntilPrevNewLine = weight_until_prev_new_line(this->text.get(), currentIndex);
@@ -179,6 +180,22 @@ bool TextBox::cursorIsOnNewLine() const{
     }
     size_t localIndex = 0;
     size_t ropeIndex = this->cursor.index==this->text->weight?this->cursor.index-1:this->cursor.index;
+    RopeNode *nodeAtCursor = rope_node_at_index(*(this->text), ropeIndex, &localIndex);
+    if(nodeAtCursor == nullptr){
+        return false;
+    }
+    //if node is newlined, and cursor is at the end
+    return (nodeAtCursor->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE) &&
+            (localIndex == nodeAtCursor->weight - 1);  
+}
+
+bool TextBox::frameCursorIsOnNewLine() const{
+    if(this->frameCursor.index > this->text->weight){
+        PLOG_ERROR << "invalid frame cursor index";
+        return false;
+    }
+    size_t localIndex = 0;
+    size_t ropeIndex = this->frameCursor.index;
     RopeNode *nodeAtCursor = rope_node_at_index(*(this->text), ropeIndex, &localIndex);
     if(nodeAtCursor == nullptr){
         return false;
@@ -251,6 +268,15 @@ void TextBox::frameCursorMove(int16_t diff){
     this->repositionFrameCursor();
     this->repositionCursor();
 }
+
+
+/*
+    checks if cursor index is visible
+*/
+bool TextBox::isCursorVisible(){
+    return this->cursor.isDrawn;
+}
+
 
 /*
     moves back frameCursor index so that weightUntilPrevNewLine % textWidth = 0
@@ -377,12 +403,16 @@ void TextBox::insertLineAtCursor(const char *text, const uint8_t flags){
     }
 }
 
-void TextBox::inertFlagAtRange(size_t index, size_t length, uint8_t flags){
-    if((index+length) >= this->text->weight || length <= 0){
+void TextBox::insertFlagAtRange(size_t index, size_t length, uint8_t flags){
+    if((index+length) > this->text->weight || length <= 0){
         PLOG_ERROR << "invalid range, aborted.";
         return;
     }
     rope_insert_flag_at(this->text.get(), index, length, flags);
+
+    if(flags & FLAG_NEW_LINE){
+        this->repositionCursor();
+    }
 }
 
 void TextBox::deleteAtCursor(){
@@ -444,10 +474,10 @@ void TextBox::cursorWalkRight(uint16_t diff){
 
 void TextBox::cursorWalkUp(uint16_t diff){
     uint16_t    leftDiff = 0;
-    size_t      currentIndex = this->cursor.index==this->text->weight?this->cursor.index-1:this->cursor.index;
+    size_t      currentIndex = this->cursor.index==this->text->weight&&!this->cursorIsOnNewLine()?this->cursor.index-1:this->cursor.index;
     size_t      weightUntilPrevNewLine = weight_until_prev_new_line(this->text.get(), currentIndex);
     //count how much should index be moved
-    while(diff > 0 && currentIndex > 0){
+    while(diff > 0 && currentIndex >= 0){
         uint16_t yDiff = ((weightUntilPrevNewLine - 1)/this->getTextWidth());
         if(yDiff >= diff){//cursor goes inside this newlined block
             leftDiff += (diff * this->getTextWidth());
@@ -496,6 +526,83 @@ void TextBox::cursorWalkDown(uint16_t diff){
     }
     //move back
     this->cursorWalkRight(rightDiff);
+}
+
+void
+TextBox::findCursor(){
+    //needs to go up
+    if(this->cursor.index < this->frameCursor.index){
+        uint16_t lines = this->countLinesToCursorUp();
+        if(lines > 0)
+            this->frameCursorMove(lines * -1);
+    }
+    //needs to go down
+    else if(!this->cursor.isDrawn){
+        uint16_t lines = this->countLinesToCursorDown();
+        if(lines > 0)
+            this->frameCursorMove(lines);
+    }
+
+}
+
+/*
+    count how many lines there is from frameCursor to cursor going up,
+        only applicable if cursor is out of frame, up
+            if cursor is not out of frame up it will return 0
+*/
+uint16_t 
+TextBox::countLinesToCursorUp(){
+    if(this->cursor.index >= this->frameCursor.index || this->frameCursor.index == 0)
+        return 0;
+
+    size_t currentIndex = this->frameCursor.index - 1;
+    uint16_t lines = 0;
+    while(currentIndex >= this->cursor.index){
+        size_t weightUntilPreviousNewLine = weight_until_prev_new_line(this->text.get(), currentIndex);
+        if(currentIndex < weightUntilPreviousNewLine)//uint overflow check
+            weightUntilPreviousNewLine = currentIndex;
+
+        //not inside this newlined block, continue
+        if(currentIndex - weightUntilPreviousNewLine > this->cursor.index){
+            lines += 1 + (weightUntilPreviousNewLine / this->getTextWidth());
+            currentIndex -= weightUntilPreviousNewLine;
+        }else{//cursor is inside this newlined block
+            lines += 1 + ((currentIndex - this->cursor.index) / this->getTextWidth());
+            break;
+        }
+        
+    }
+    return lines;
+}
+
+/*
+    count how many lines there is from end of textBox to cursor going down,
+        only applicable if cursor is out of frame down
+            if cursor is not out of frame down it will return 0
+*/
+uint16_t 
+TextBox::countLinesToCursorDown(){
+    if(this->cursor.index <= this->frameCursor.index)
+        return 0;
+
+    size_t currentIndex = this->frameCursor.index;
+    uint16_t lines = 0;
+    while(currentIndex <= this->cursor.index){
+        size_t weightUntilNextNewLine = weight_until_next_new_line(this->text.get(), currentIndex);
+        //not inside this newlined block, continue
+        if(currentIndex + weightUntilNextNewLine < this->cursor.index){
+            lines += 1 + (weightUntilNextNewLine / this->getTextWidth());
+            currentIndex += weightUntilNextNewLine;
+        }else{//cursor is inside this newlined block
+            lines += 1 + ((this->cursor.index - currentIndex) / this->getTextWidth());
+            break;
+        }
+        
+    }
+    //substract whole frame so that cursor is on bottom
+    // if it's less that whole frame then something is wrong because cursor should be bellow
+    //  frame
+    return lines > (this->getTextHeight()-1) ? lines - (this->getTextHeight()-1) : 0;
 }
 
 /*
@@ -554,6 +661,14 @@ TextBox::clear(){
     this->cursor.x = 0;
     this->cursor.y = 0;
 }
+
+
+
+RopeLeafIterator 
+TextBox::getRopeLeafIterator(){
+    return RopeLeafIterator(this->text.get(), 0);
+}
+
 
 
 }

@@ -502,7 +502,7 @@ void rope_insert_flag_at(RopeNode *rope, size_t index, size_t length, uint8_t fl
     if(rope == nullptr){
         PLOG_ERROR << "given rope is NULL, aborted.";
         return;        
-    }else if(length <= 0 || (index+length) >= rope->weight){
+    }else if(length <= 0 || (index+length) > rope->weight){
         PLOG_ERROR << "invalid index/length combination, aborted.";
         return;
     }
@@ -511,7 +511,7 @@ void rope_insert_flag_at(RopeNode *rope, size_t index, size_t length, uint8_t fl
     RopeLeafIterator litrope(rope, index);
     RopeNode *c;
     size_t i=index;
-    while((c = litrope.pop()) != nullptr && i < (index+length)-1){
+    while((c = litrope.pop()) != nullptr && i <= (index+length)-1){
         if(i == index && litrope.local_start_index() > 0){//first one needs to be split,
             std::unique_ptr<RopeNode> right_side = rope_split_at(rope, index);
             if(right_side != nullptr){// right side (left_most) gets the flag
@@ -677,6 +677,23 @@ bool rope_is_balanced(const RopeNode &rope){
     long right_height = rope.right != nullptr ? static_cast<long>(rope_height_measure(*(rope.right))) : 0;
     return abs(left_height - right_height)<=1;
 }
+
+
+/*
+    checks if given rope has flags at given range
+*/
+bool rope_has_flag_at(RopeNode &rope, size_t index, size_t length, uint8_t flags){
+    RopeLeafIterator litrope(&rope, index);
+    RopeNode *c;
+    size_t i=index;
+    while((c = litrope.pop()) != nullptr && i < (index+length)){
+        if(!has_flags(c->flags.get(), flags))
+            return false;
+        i++;
+    }
+    return true;
+}
+
 
 /*
     helper

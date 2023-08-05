@@ -25,8 +25,7 @@ void Box::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWi
     if(width == 0 || height == 0)
         return;
 
-    uint16_t unit = tra_get_window_width() / textWidth;
-    tra_draw_rectangle(startX + this->x, startY + this->y, this->width * unit, this->height * unit);
+    tra_draw_rectangle(startX + this->x, startY + this->y, this->width, this->height);
 }
 
 void Box::on_pane_resize(const int16_t paneTextWidth,const int16_t paneTextHeight){
@@ -44,6 +43,16 @@ Box::getWidth(){
 uint16_t
 Box::getHeight(){
     return this->height;
+}
+
+uint16_t
+Box::getX(){
+    return this->x;
+}
+
+uint16_t
+Box::getY(){
+    return this->y;
 }
 
 void

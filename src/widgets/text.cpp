@@ -30,12 +30,14 @@ void Text::draw(const uint16_t startX,const uint16_t startY,const uint16_t textW
     if(this->text == nullptr){
         PLOG_ERROR << "text is NULL, aborted.";
         return;
-    }
-    else if(this->x >= textWidth ||
-        this->y >= textHeight){
-        PLOG_WARNING << "text is outside of text area bounds, aborted.";
+    }else if(this->text->weight == 0){
         return;
     }
+    // else if(this->x >= textWidth ||
+    //     this->y >= textHeight){
+    //     PLOG_WARNING << "text is outside of text area bounds, aborted.";
+    //     return;
+    // }
     uint16_t actualTextWidth = this->textWidth==0?this->length():this->textWidth;
     //draw text
     tra_draw_text(this->text.get(), startX, startY, this->x, this->y, 
@@ -93,8 +95,33 @@ void Text::setText(const char *text){
 }
 
 void Text::insertAt(const char *text,const size_t index){
+    if(index > 0 && index >= this->text->weight)
+        return;
+
     //insert given text at index
-    rope_insert_at(this->text.get(), index, text);
+    if(index == 0){
+        rope_prepend(this->text.get(), text);
+    }else if(index == this->text->weight - 1){
+        rope_append(this->text.get(), text);
+    }
+    else{
+        rope_insert_at(this->text.get(), index, text);
+    }
+}
+
+void Text::insertAt(const char *text,const size_t index,const uint8_t flags){
+    if(index > 0 && index >= this->text->weight)
+        return;
+
+    //insert given text at index
+    if(index == 0){
+        rope_prepend(this->text.get(), rope_create(text, flags));
+    }else if(index == this->text->weight - 1){
+        rope_append(this->text.get(), rope_create(text, flags));
+    }
+    else{
+        rope_insert_at(this->text.get(), index, rope_create(text, flags));
+    }
 }
 
 void Text::deleteAt(const size_t index,const uint16_t length){

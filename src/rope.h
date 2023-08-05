@@ -123,6 +123,7 @@ size_t                          rope_weight_measure(const RopeNode&);
 size_t                          rope_weight_measure_set(RopeNode*);
 size_t                          rope_height_measure(const RopeNode&);
 bool                            rope_is_balanced(const RopeNode&);
+bool                            rope_has_flag_at(RopeNode&, size_t, size_t, uint8_t);
 std::unique_ptr<RopeNode>       rope_rebalance(std::unique_ptr<RopeNode>);
 std::unique_ptr<RopeNode>       rope_split_at(RopeNode*,size_t);
 RopeNode*                       rope_node_at_index_trace(RopeNode&,size_t,std::stack<RopeNode*>*,size_t*);

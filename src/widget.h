@@ -70,6 +70,7 @@ public:
     uint16_t        getTextWidth();
     void            setText(const char *);
     void            insertAt(const char *, size_t);
+    void            insertAt(const char *, size_t,const uint8_t);
     void            deleteAt(const size_t,const uint16_t);
     void            underline();
 
@@ -90,6 +91,7 @@ private:
 
     void            repositionCursor();
     bool            cursorIsOnNewLine() const;
+    bool            frameCursorIsOnNewLine() const;
     void            repositionFrameCursor();
 
 public:
@@ -115,7 +117,7 @@ public:
     void            insertLineAtCursor(const char *);
     void            insertAtCursor(const char *, const uint8_t);
     void            insertLineAtCursor(const char *, const uint8_t);
-    void            inertFlagAtRange(size_t, size_t, uint8_t);
+    void            insertFlagAtRange(size_t, size_t, uint8_t);
     void            deleteAtCursor();
     void            backspaceAtCursor();
     void            cursorWalkLeft(uint16_t);
@@ -123,9 +125,15 @@ public:
     void            cursorWalkUp(uint16_t);
     void            cursorWalkDown(uint16_t);
     void            frameCursorMove(int16_t);
+    bool            isCursorVisible();
+    void            findCursor();
+    uint16_t        countLinesToCursorUp();
+    uint16_t        countLinesToCursorDown();
     void            scrollToEnd();
     void            scrollToBeginning();
     void            clear();
+
+    RopeLeafIterator    getRopeLeafIterator();
 
 
 };
@@ -151,6 +159,8 @@ public:
     void            on_pane_resize(const int16_t,const int16_t) override;
     uint16_t        getWidth();
     uint16_t        getHeight();
+    uint16_t        getX();
+    uint16_t        getY();
     void            resize(uint16_t, uint16_t);
     void            activate(bool);
 

@@ -169,7 +169,8 @@ size_t weight_until_prev_new_line(RopeNode *rope, size_t currentIndex){
     RopeLeafIteratorBack blitrope(rope, currentIndex);
     size_t weightToNodeStart = blitrope.local_start_index() + 1;
     RopeNode *current;
-    blitrope.pop();
+    current = blitrope.pop();
+
     //start from prev
     while((current = blitrope.pop()) != nullptr &&
         !(current->flags->effects.to_ulong() & (uint64_t)FLAG_NEW_LINE)){
@@ -177,6 +178,12 @@ size_t weight_until_prev_new_line(RopeNode *rope, size_t currentIndex){
         weight += current->weight;
     }
     return weight + weightToNodeStart;
+}
+
+void tra_draw_text(RopeNode *rope, uint16_t xPaneStart, uint16_t yPaneStart, uint16_t xStart, uint16_t yStart, uint16_t textWidth, uint16_t textHeight,size_t index){
+    Cursor c;
+    c.index = index;
+    _tra_draw_text_down(rope, xPaneStart, yPaneStart, xStart, yStart, textWidth, textHeight, c);
 }
 
 void tra_draw_text(RopeNode *rope, uint16_t xPaneStart, uint16_t yPaneStart, uint16_t xStart, uint16_t yStart, uint16_t textWidth, uint16_t textHeight,Cursor &cursor){

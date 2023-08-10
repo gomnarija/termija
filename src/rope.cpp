@@ -204,6 +204,7 @@ size_t ustrlen(const char *s){
 size_t u_index_at(const char *s, size_t count){
     const char *p = s;
     size_t index = 0;
+
     while (*p != 0 && count > 0){
         //continunation
         if((*p & 0xc0) != 0x80)
@@ -551,6 +552,7 @@ void rope_delete_at(RopeNode *rope, size_t index, size_t length){
     }
     std::unique_ptr<RopeNode> deleted_rope = rope_split_at(rope, index);
     std::unique_ptr<RopeNode> right_side = rope_split_at(deleted_rope.get(), length-1);
+
     if(right_side != nullptr)
         rope_append(rope, std::move(right_side));
 }
@@ -799,36 +801,42 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
         PLOG_ERROR << "given node not a leaf, aborted.";
         return;
     }
+    //length - measure number of unicode characters not bytes( as with strlen)
+    size_t length = ustrlen(node->text.get());
+    //length in bytes
+    size_t b_length = strlen(node->text.get());
+    //index from character to byte,
+    //  u_index_at takes index of the character and returns starting index of the first byte of that character
+    //  because we want to also include that character index, we send index + 1
+    size_t u_index = u_index_at(node->text.get(), index+1);
+    if(u_index > 0 && u_index > index){
+        //because we sent index+a to u_index_at now we must -- so that it will place it at the end of the character we want
+        u_index--;
+    }
 
-    size_t length = strlen(node->text.get());
-    //index from character to byte
-    index = u_index_at(node->text.get(), index);
-
-    if(index >= length){
+    if(u_index >= b_length){
         PLOG_ERROR << "index bigger than length, aborted. index : " << index;
         return;
     }
-
-
 
     //new split nodes
     left = std::make_unique<RopeNode>();
     right = std::make_unique<RopeNode>();
 
     //left, up to index, including index
-    left->weight = index+1;        
+    left->weight = index+1;
     {    
         //split text
-        left->text = std::make_unique<char []>(left->weight+1);
-        snprintf(left->text.get(), (left->weight)  + 1, "%s", node->text.get());//The generated string has a length of at most n-1    
+        left->text = std::make_unique<char []>(u_index + 2);//+2 - one for null terminating character, and one beacuse we are starting from 0
+        snprintf(left->text.get(), u_index + 2, "%s", node->text.get());//The generated string has a length of at most n-1    
     }                                       
 
     //right, from index                            
-    right->weight = (length) - (index+1);
+    right->weight = (length) - left->weight;
     {
         //split text
-        right->text = std::make_unique<char []>(right->weight+1);
-        snprintf(right->text.get(), (right->weight) + 1, "%s", node->text.get() + ((index)+1));
+        right->text = std::make_unique<char []>((b_length - u_index) + 2);//+2 - one for null terminating character, and one beacuse we are starting from 0
+        snprintf(right->text.get(), (b_length - u_index) + 2, "%s", node->text.get() + u_index + 1);
     }
 
     //split flags
@@ -837,6 +845,7 @@ void _split_node(RopeNode *node, size_t index, std::unique_ptr<RopeNode> &left, 
     node->text.release();
     node->weight = left->weight;
 }
+
 
 /*
     cuts rope so that it contains characters up to index, including index;
@@ -863,7 +872,6 @@ std::unique_ptr<RopeNode> rope_split_at(RopeNode *rope,size_t index){
         std::unique_ptr<RopeNode> split_left, split_right;
         _split_node(leaf, local_index, split_left, split_right);
         leaf->left.swap(split_left);
-        
         if(split_right != nullptr){
             new_rope->weight = split_right->weight;
             removed_weight = new_rope->weight;

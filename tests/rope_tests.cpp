@@ -719,6 +719,31 @@ TEST_CASE( "Inserted at index inside of rope", "[rope_insert_at]" ) {
         REQUIRE( rope_text == "spre_ome_some__umetak_jos_jedantext_textpost_" );
     }
 
+    SECTION("insert rope at index inside rope, latinica"){
+        std::unique_ptr<RopeNode> in_rope = rope_create("_some_text");
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+        rope_insert_at(rope.get(), 3, std::move(in_rope));
+        rope_insert_at(rope.get(), 9, "_ušeđaž_još_jedan");
+        rope_insert_at(rope.get(), 0, "pre_");
+        rope_insert_at(rope.get(), 39, "pošt_");
+
+
+
+        REQUIRE( in_rope == nullptr );
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 45 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "spre_ome_some__ušeđaž_još_jedantext_textpošt_" );
+    }
+
     SECTION("insert rope at index inside rope, inverted"){
         std::unique_ptr<RopeNode> in_rope = rope_create("_some_text", FLAG_INVERT);
         std::unique_ptr<RopeNode> rope = rope_create("some_text");
@@ -925,6 +950,24 @@ TEST_CASE( "Delete at index inside of rope", "[rope_delete_at]" ) {
         REQUIRE( rope_text == "some_text" );
     }
 
+    SECTION("delete text at index inside rope, latinica"){
+        std::unique_ptr<RopeNode> rope = rope_create("šome_težt_to_đečeće_težt");
+        rope_delete_at(rope.get(), 3, 15);
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( rope->weight == 9 );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "šome_težt" );
+    }
+
     SECTION("delete text at index inside rope, inverted"){
         std::unique_ptr<RopeNode> rope = rope_create("some_text_to_delete_text", FLAG_INVERT);
         rope_delete_at(rope.get(), 3, 15);
@@ -1074,6 +1117,38 @@ TEST_CASE( "Rope splited at index", "[rope_split_at]" ) {
             rope_text += c->text.get();
         }
         REQUIRE( rope_text == "some_text_s" );
+
+        std::string new_rope_text;
+        RopeLeafIterator litnrope(new_rope.get());
+
+        while((c = litnrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            new_rope_text += c->text.get();
+        }
+        REQUIRE( new_rope_text == "ome_more_text" );
+
+    }
+
+    SECTION("splits the rope at the given index, latinica"){
+        std::unique_ptr<RopeNode> rope = rope_create("šođe_tešt_some_more_text");
+        std::unique_ptr<RopeNode> new_rope = rope_split_at(rope.get(), 10);
+
+
+        REQUIRE( rope != nullptr );
+        REQUIRE( new_rope != nullptr );
+        REQUIRE( rope->weight == 11 );
+        REQUIRE( new_rope->weight == 13);
+
+
+        std::string rope_text;
+        RopeLeafIterator litrope(rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == "šođe_tešt_s" );
 
         std::string new_rope_text;
         RopeLeafIterator litnrope(new_rope.get());

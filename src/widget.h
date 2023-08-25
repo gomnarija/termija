@@ -5,6 +5,9 @@
 #include "rope.h"
 #include "string.h"
 
+
+#include <map>
+
 namespace termija{
 
 struct Cursor final{
@@ -49,7 +52,9 @@ public:
 */
 class Text : public Widget{
 private:
+    bool                            isActive;
     uint16_t                        textWidth;
+    uint16_t                        textHeight;
     std::unique_ptr<RopeNode>       text;
 
 public:
@@ -67,12 +72,16 @@ public:
     uint16_t        getY() const;
     void            setPosition(const uint16_t,const uint16_t);
     void            setTextWidth(const uint16_t);
+    void            setTextHeight(const uint16_t);
     uint16_t        getTextWidth();
+    uint16_t        getTextHeight();
     void            setText(const char *);
     void            insertAt(const char *, size_t);
+    void            insertFlagAt(const uint8_t, size_t, size_t);
     void            insertAt(const char *, size_t,const uint8_t);
     void            deleteAt(const size_t,const uint16_t);
     void            underline();
+    void            activate(bool);
 
 };
 
@@ -150,8 +159,8 @@ private:
 
 public:
     Box(const uint16_t,const uint16_t, const uint16_t, const uint16_t);
-    Box(const Box&)               = delete;
-    void operator=(Box const&)     = delete;
+    Box(const Box&)                 = delete;
+    void operator=(Box const&)      = delete;
     ~Box();
 
     void            update() override;
@@ -163,6 +172,99 @@ public:
     uint16_t        getY();
     void            resize(uint16_t, uint16_t);
     void            activate(bool);
+
+};
+
+/*
+    Bar Widget
+*/
+class Bar : public Widget{
+private:
+
+    bool                        isActive;
+    uint16_t                    textHeight;
+    uint16_t                    textWidth;
+    uint16_t                    length;
+
+public:
+    Bar(const uint16_t,const uint16_t, const uint16_t);
+    Bar(const Bar&)                 = delete;
+    void operator=(Bar const&)      = delete;
+    ~Bar();
+
+    void            update() override;
+    void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
+    void            on_pane_resize(const int16_t,const int16_t) override;
+    uint16_t        getLength();
+    uint16_t        getX();
+    uint16_t        getY();
+    bool            getIsActive();
+    void            resize(uint16_t);
+    void            reposition(uint16_t, uint16_t);
+    void            activate(bool);
+
+};
+
+
+
+struct ListColumn{
+    std::string         name;
+    uint16_t            x, y;
+    uint16_t            width;
+    std::map<uint16_t, Text*>
+                        rows;
+};
+
+
+//fwd declaration
+struct Pane;
+
+/*
+    List Widget
+*/
+class List : public Widget{
+private:
+    Pane                        *pane;
+    uint16_t                    widthInText;
+    uint16_t                    heightInText;
+    uint16_t                    startingIndex=0;
+    uint16_t                    selectedIndex=0;
+
+    uint8_t                     columnSpacing=0;//DO NOT CHANGE THIS!!
+    uint8_t                     rowSpacing=0;// STARTED GOING FOR CHAR PERFECT!!
+
+    std::vector<ListColumn>     table;
+    std::vector<Text*>          headerColumns;
+    bool                        isShowColumnNames;
+
+
+    ListColumn*                 findColumn(const std::string &);
+    uint16_t                    countActualWidth();
+    uint16_t                    getHighestRowIndex();
+    void                        invertText(Text*, bool);
+
+public:
+    List(const uint16_t,const uint16_t, const uint16_t, const uint16_t, Pane*);
+    List(const List&)               = delete;
+    void operator=(List const&)     = delete;
+    ~List();
+
+    void            update() override;
+    void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
+    void            on_pane_resize(const int16_t,const int16_t) override;
+    void            updateTable();
+    uint16_t        getHeight();
+    uint16_t        getX();
+    uint16_t        getY();
+    uint16_t        getWidth();
+    void            insertColumn(ListColumn);
+    void            insertRow(std::vector<std::string>&, uint16_t);
+    void            insertRow(std::vector<std::string>&);
+    void            scrollUp(uint16_t);
+    void            scrollDown(uint16_t);
+    void            selectUp(uint16_t);
+    void            selectDown(uint16_t);
+    void            showColumNames(bool);
 
 };
 

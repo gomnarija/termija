@@ -243,6 +243,7 @@ void        tra_push_render_texture_to_garbage(RenderTexture2D);
 void        tra_unload_render_textures();
 RenderTexture2D        tra_get_render_texture();
 void        tra_draw_rectangle(uint16_t, uint16_t, uint16_t, uint16_t);
+void        tra_draw_rectangle_fill(uint16_t, uint16_t, uint16_t, uint16_t);
 
 
 //font

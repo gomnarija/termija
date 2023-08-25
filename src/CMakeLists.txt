@@ -24,12 +24,15 @@ ${SOURCE_DIR}/drawing.cpp
 ${SOURCE_DIR}/rope.cpp
 ${SOURCE_DIR}/config.cpp
 ${SOURCE_DIR}/widgets/box.cpp
+${SOURCE_DIR}/widgets/bar.cpp
+${SOURCE_DIR}/widgets/list.cpp
 ${SOURCE_DIR}/widgets/text.cpp
 ${SOURCE_DIR}/widgets/textbox.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} PARENT_SCOPE)
 
 set(HEADER_FILES
 ${SOURCE_DIR}/termija.h
+${SOURCE_DIR}/widget.h
 ${SOURCE_DIR}/rope.h)
 set(HEADER_FILES ${HEADER_FILES} PARENT_SCOPE)
 

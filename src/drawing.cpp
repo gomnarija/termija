@@ -26,6 +26,10 @@ void tra_draw_rectangle(uint16_t topX, uint16_t topY, uint16_t width, uint16_t h
     DrawRectangleLines(topX, topY, width, height, TERMIJA_COLOR);
 }
 
+void tra_draw_rectangle_fill(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height){
+    DrawRectangle(topX, topY, width, height, TERMIJA_COLOR);
+}
+
 
 void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture, const Shader *backShader){
     if(backTexture == NULL){

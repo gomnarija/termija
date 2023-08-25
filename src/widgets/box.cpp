@@ -22,8 +22,11 @@ void Box::update(){
 }
 
 void Box::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
-    if(width == 0 || height == 0)
+    if(width == 0 || height == 0){
         return;
+    }else if(!isActive){
+        return;
+    }
 
     tra_draw_rectangle(startX + this->x, startY + this->y, this->width, this->height);
 }

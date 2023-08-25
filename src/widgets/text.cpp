@@ -9,7 +9,9 @@
 namespace termija{
 
 Text::Text(const uint16_t x,const uint16_t y, const char *text):
-textWidth{0}{
+textWidth{0},
+textHeight{0},
+isActive{true}{
     if(text == nullptr){
         PLOG_ERROR << "given text is NULL, aborted.";
         return;
@@ -32,6 +34,8 @@ void Text::draw(const uint16_t startX,const uint16_t startY,const uint16_t textW
         return;
     }else if(this->text->weight == 0){
         return;
+    }else if(!isActive){
+        return;
     }
     // else if(this->x >= textWidth ||
     //     this->y >= textHeight){
@@ -39,9 +43,11 @@ void Text::draw(const uint16_t startX,const uint16_t startY,const uint16_t textW
     //     return;
     // }
     uint16_t actualTextWidth = this->textWidth==0?this->length():this->textWidth;
+    uint16_t actualTextHeight = this->textHeight==0?this->lines():this->textHeight;
+
     //draw text
     tra_draw_text(this->text.get(), startX, startY, this->x, this->y, 
-                std::min((this->x + actualTextWidth), (int)textWidth), std::min((uint16_t)(this->y + this->lines()),textHeight), 0);
+                std::min(actualTextWidth, textWidth), std::min(actualTextHeight, textHeight), 0);
 }
 
 void Text::on_pane_resize(const int16_t paneTextWidth,const int16_t paneTextHeight){
@@ -76,12 +82,20 @@ uint16_t Text::lines(){
     return (this->length() / actualTextWidth) + ((this->length()%actualTextWidth)>0?1:0);
 }
 
-void Text::setTextWidth(const uint16_t textWith){
+void Text::setTextWidth(const uint16_t textWidth){
     this->textWidth = textWidth;
+}
+
+void Text::setTextHeight(const uint16_t textHeight){
+    this->textHeight = textHeight;
 }
 
 uint16_t Text::getTextWidth(){
     return textWidth==0?this->length():textWidth;
+}
+
+uint16_t Text::getTextHeight(){
+    return textHeight==0?this->lines():textHeight;
 }
 
 void Text::setText(const char *text){
@@ -124,6 +138,14 @@ void Text::insertAt(const char *text,const size_t index,const uint8_t flags){
     }
 }
 
+void Text::insertFlagAt(const uint8_t flags,const size_t index, const size_t length){
+    if(index >= this->text->weight)
+        return;
+
+    //insert given flag at index
+    rope_insert_flag_at(this->text.get(), index, length, flags);
+}
+
 void Text::deleteAt(const size_t index,const uint16_t length){
     //delete text of given length at given index
     rope_delete_at(this->text.get(), index, length);
@@ -142,6 +164,12 @@ void Text::underline(){
         //TODO: add UNDERLINE_FLAG
         current->flags->effects;
     }
+}
+
+
+void
+Text::activate(bool isActive){
+    this->isActive = isActive;
 }
 
 }

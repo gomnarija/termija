@@ -18,20 +18,24 @@ void _DrawTextEx(Font, const char *, Vector2, float, float, Color, unsigned int)
 void _DrawInvertedTextEx(Font, const char *, Vector2, float, float, Color, unsigned int);
 
 void tra_draw_pane_border(const Pane& pane){
-    DrawRectangleLines(pane.topX, pane.topY, pane.width, pane.height, TERMIJA_COLOR);
+    const Termija& termija = Termija::instance();
+    DrawRectangleLines(pane.topX, pane.topY, pane.width, pane.height, termija.fontColor);
 }
 
 
 void tra_draw_rectangle(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height){
-    DrawRectangleLines(topX, topY, width, height, TERMIJA_COLOR);
+    const Termija& termija = Termija::instance();
+    DrawRectangleLines(topX, topY, width, height, termija.fontColor);
 }
 
 void tra_draw_rectangle_fill(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height){
-    DrawRectangle(topX, topY, width, height, TERMIJA_COLOR);
+    const Termija& termija = Termija::instance();
+    DrawRectangle(topX, topY, width, height, termija.fontColor);
 }
 
 
 void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture, const Shader *backShader){
+    const Termija& termija = Termija::instance();
     if(backTexture == NULL){
         PLOG_ERROR << "backTexture is NULL, aborted.";
         return;
@@ -39,7 +43,7 @@ void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture
     //draw
     // if(backShader != NULL)
     //     BeginShaderMode(*backShader);
-            DrawTextureRec(*backTexture, {0,0,(float)width, (float)height}, {0,0}, TERMIJA_COLOR);
+            DrawTextureRec(*backTexture, {0,0,(float)width, (float)height}, {0,0}, termija.fontColor);//TODOR: maybe add separate background color
     // if(backShader != NULL)
     //     EndShaderMode();
 }
@@ -63,7 +67,7 @@ void tra_draw_cursor(uint16_t xPaneStart, uint16_t yPaneStart, Cursor &cursor){
         Vector2 position{(float)xPaneStart+(cursor.x*(termija.fontWidth+termija.fontSpacing)), (float)yPaneStart+(cursor.y*(termija.fontHeight))};
         //move to character bottom
         position.y += termija.fontHeight - thickness;
-        DrawRectangle(position.x, position.y, termija.fontWidth+termija.fontSpacing, thickness, TERMIJA_COLOR);
+        DrawRectangle(position.x, position.y, termija.fontWidth+termija.fontSpacing, thickness, termija.fontColor);
     }
     cursor.blinkTimer += tra_delta_time();
     //reset timer
@@ -101,7 +105,7 @@ void _tra_draw_node_down(RopeNode *node, uint16_t &x, uint16_t &y, uint16_t xPan
     while(left < right && y < textHeight){
         //draw
         Vector2 position{(float)xPaneStart+xStart+(x*(termija.fontWidth+termija.fontSpacing)), (float)yPaneStart+yStart+(y*(termija.fontHeight))};
-        _draw(node->flags->effects.to_ullong(),*font, node->text.get() + u_index_at(node->text.get(), left), position, (float)termija.fontHeight, (float)termija.fontSpacing, TERMIJA_COLOR, right-left);
+        _draw(node->flags->effects.to_ullong(),*font, node->text.get() + u_index_at(node->text.get(), left), position, (float)termija.fontHeight, (float)termija.fontSpacing, termija.fontColor, right-left);
         //move position
         x += (right - left);
         //next part

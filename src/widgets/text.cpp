@@ -11,7 +11,8 @@ namespace termija{
 Text::Text(const uint16_t x,const uint16_t y, const char *text):
 textWidth{0},
 textHeight{0},
-isActive{true}{
+isActive{true}
+{
     if(text == nullptr){
         PLOG_ERROR << "given text is NULL, aborted.";
         return;
@@ -108,12 +109,26 @@ void Text::setText(const char *text){
     this->text = rope_create(text);
 }
 
+void Text::setText(const char *text, const uint8_t flags){
+    if(text == nullptr){
+        PLOG_ERROR << "text is NULL, aborted.";
+        return;
+    }
+    if(this->text == nullptr){
+        this->text = rope_create(text, flags);
+    }else{
+        //destroy current rope, and create new one with flags
+        rope_destroy(std::move(this->text));
+        this->text = rope_create(text, flags);
+    }
+}
+
 void Text::insertAt(const char *text,const size_t index){
     if(index > 0 && index >= this->text->weight)
         return;
 
     //insert given text at index
-    if(index == 0){
+    if(index == 0 && this->text->weight == 0){
         rope_prepend(this->text.get(), text);
     }else if(index == this->text->weight - 1){
         rope_append(this->text.get(), text);
@@ -128,7 +143,7 @@ void Text::insertAt(const char *text,const size_t index,const uint8_t flags){
         return;
 
     //insert given text at index
-    if(index == 0){
+    if(index == 0  && this->text->weight == 0){
         rope_prepend(this->text.get(), rope_create(text, flags));
     }else if(index == this->text->weight - 1){
         rope_append(this->text.get(), rope_create(text, flags));

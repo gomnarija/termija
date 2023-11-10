@@ -8,15 +8,12 @@
 
 namespace termija{
 
-Bar::Bar(const uint16_t x,const uint16_t y, const uint16_t length){
-    this->length        = length;
-    this->x         = x;
-    this->y         = y;
-    isActive        = true;
-
-    termija::Termija &termija = termija::tra_get_instance();
-    this->textWidth = (termija.fontWidth+termija.fontSpacing);
-    this->textHeight = (termija.fontHeight+termija.fontSpacing);
+Bar::Bar(const uint16_t x,const uint16_t y, const uint16_t width, const uint16_t height){
+    this->width         = width;
+    this->height        = height;
+    this->x             = x;
+    this->y             = y;
+    isActive            = true;
 }
 
 
@@ -25,13 +22,13 @@ void Bar::update(){
 }
 
 void Bar::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
-    if(length == 0){
+    if(width == 0 || height == 0){
         return;
     }else if(!isActive){
         return;
     }
 
-    tra_draw_rectangle_fill(startX + this->x, startY + this->y, this->textWidth * this->length, this->textHeight);
+    tra_draw_rectangle_fill(startX + this->x, startY + this->y, this->width, this->height);
 }
 
 void Bar::on_pane_resize(const int16_t paneTextWidth,const int16_t paneTextHeight){
@@ -41,10 +38,6 @@ void Bar::on_pane_resize(const int16_t paneTextWidth,const int16_t paneTextHeigh
 Bar::~Bar(){
 }
 
-uint16_t
-Bar::getLength(){
-    return this->length;
-}
 
 uint16_t
 Bar::getX(){
@@ -62,8 +55,9 @@ Bar::getIsActive(){
 }
 
 void
-Bar::resize(uint16_t length){
-    this->length     = length;
+Bar::resize(uint16_t width, uint16_t height){
+    this->width = width;
+    this->height = height;
 }
 
 void

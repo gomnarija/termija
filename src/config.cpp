@@ -4,12 +4,14 @@
 
 #include <fstream>
 #include <map>
+#include <algorithm>
 
 namespace termija{
 
 void _parse_font_path(const std::string);
 void _parse_font_width(const std::string);
 void _parse_font_height(const std::string);
+void _parse_font_color(const std::string);
 void _parse_window_width(const std::string);
 void _parse_window_height(const std::string);
 void _parse_window_title(const std::string);
@@ -21,6 +23,7 @@ std::map<std::string, void (*)(const std::string)> configFields{
     {"fontPath",        &_parse_font_path},
     {"fontWidth",       &_parse_font_width},
     {"fontHeight",      &_parse_font_height},
+    {"fontColor",       &_parse_font_color},
     {"windowWidth",     &_parse_window_width},
     {"windowHeight",    &_parse_window_height},
     {"windowTitle",     &_parse_window_title},
@@ -47,6 +50,29 @@ void _parse_font_width(const std::string field){
 void _parse_font_height(const std::string field){
     Termija& termija = Termija::instance();
     termija.fontHeight = std::stoi(field);
+}
+
+void _parse_font_color(const std::string field){
+    Termija& termija = Termija::instance();
+    //check that RGB value is valid, "R,G,B"
+    if(std::count(field.begin(), field.end(), ',') != 2){
+        PLOG_ERROR << "invalid RGB value: " << field;
+        return;
+    }
+    std::string valueToken;
+    std::stringstream ss(field);
+    try{
+        std::getline(ss, valueToken, ',');
+        unsigned char redValue = std::stoi(valueToken);
+        std::getline(ss, valueToken, ',');
+        unsigned char greenValue = std::stoi(valueToken);
+        std::getline(ss, valueToken, ',');
+        unsigned char blueValue = std::stoi(valueToken);
+
+        termija.fontColor = {redValue, greenValue, blueValue, 255};
+    }catch(const std::exception& e){
+        PLOG_ERROR << "invalid RGB value: " << field;
+    }
 }
 
 void _parse_window_width(const std::string field){
@@ -90,6 +116,10 @@ void tra_load_config(const char *configPath){
     //parse file
     std::string line, field, value;
     while(std::getline(configFile, line)){
+        //empty lines
+        if(std::all_of(line.begin(), line.end(), ::isspace))
+            continue;
+
         //parse line, field=value
         std::istringstream    is_line(line);
         if(std::getline(is_line, field, '=')){
@@ -124,6 +154,8 @@ void tra_default_config(){
     termija.fontWidth       = DEFAULT_FONT_WIDTH;
     termija.fontHeight      = DEFAULT_FONT_HEIGHT;
     termija.fontSpacing     = DEFAULT_FONT_SPACING;
+    termija.fontColor       = TERMIJA_COLOR;
+
 }
 
 }

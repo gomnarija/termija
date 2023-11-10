@@ -37,7 +37,7 @@ inline Shader                   ALPHA_DISCARD_SHADER;
 inline Shader                   BLOOM_SHADER;
 inline Shader                   POST_SHADER;
 
-inline const Color              TERMIJA_COLOR                       = (Color){ 238, 232, 213, 225};
+inline const Color              TERMIJA_COLOR                       = (Color){ 255, 250, 205, 245};
 inline const Color              ALPHA_DISCARD                       = (Color){ 26, 26, 26, 255 };
 //res
 inline const char               *DEFAULT_BACK_TEXTURE_PATH           = "res/screen.png";
@@ -130,6 +130,7 @@ class Termija final{
 
     public:
         std::string                         fontPath;
+        Color                               fontColor;
         uint8_t                             fontWidth;
         uint8_t                             fontHeight;
         uint8_t                             fontSpacing;

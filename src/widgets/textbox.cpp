@@ -22,6 +22,7 @@ margin{0}
     this->text = rope_create_empty();
     //frameCursor
     this->frameCursor.isDrawn = false;
+    this->frameCursorLine = 0;
 }
 
 
@@ -130,6 +131,11 @@ TextBox::getText(size_t start, size_t end) const{
 std::string
 TextBox::getText() const{
     return this->getText(0, this->text->weight);
+}
+
+std::pair<uint16_t, uint16_t>
+TextBox::getCursorPosition() const{
+    return std::pair<uint16_t, uint16_t>(this->cursor.x, this->frameCursorLine + this->cursor.y);
 }
 
 /*
@@ -295,6 +301,32 @@ void TextBox::repositionFrameCursor(){
     }
     uint16_t weightUntilPrevNewLine = weight_until_prev_new_line(this->text.get(), this->frameCursor.index);
     this->frameCursor.index -= (weightUntilPrevNewLine-1) % this->getTextWidth();
+
+
+    //count at what line frameCursor is
+    if(this->frameCursor.index == 0){
+        this->frameCursorLine = 0;
+        return;
+    }
+
+    size_t currentIndex = this->frameCursor.index - 1;
+    uint16_t lines = 0;
+    while(currentIndex >= 0){
+        size_t weightUntilPreviousNewLine = weight_until_prev_new_line(this->text.get(), currentIndex);
+        if(currentIndex < weightUntilPreviousNewLine)//uint overflow check
+            weightUntilPreviousNewLine = currentIndex;
+
+        //not inside this newlined block, continue
+        if(currentIndex - weightUntilPreviousNewLine > 0){
+            lines += 1 + (weightUntilPreviousNewLine / this->getTextWidth());
+            currentIndex -= weightUntilPreviousNewLine;
+        }else{//cursor is inside this newlined block
+            lines += 1 + ((currentIndex - 0) / this->getTextWidth());
+            break;
+        }
+    }
+
+    this->frameCursorLine = lines;
 }
 
 
@@ -546,7 +578,7 @@ TextBox::findCursor(){
 }
 
 /*
-    count how many lines there is from frameCursor to cursor going up,
+    count how many lines there are from frameCursor to cursor going up,
         only applicable if cursor is out of frame, up
             if cursor is not out of frame up it will return 0
 */
@@ -576,7 +608,7 @@ TextBox::countLinesToCursorUp(){
 }
 
 /*
-    count how many lines there is from end of textBox to cursor going down,
+    count how many lines there are from end of textBox to cursor going down,
         only applicable if cursor is out of frame down
             if cursor is not out of frame down it will return 0
 */
@@ -656,6 +688,7 @@ TextBox::clear(){
     this->frameCursor.index = 0;
     this->frameCursor.x = 0;
     this->frameCursor.y = 0;
+    this->frameCursorLine = 0;
     //cursor
     this->cursor.index = 0;
     this->cursor.x = 0;

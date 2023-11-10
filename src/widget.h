@@ -76,6 +76,7 @@ public:
     uint16_t        getTextWidth();
     uint16_t        getTextHeight();
     void            setText(const char *);
+    void            setText(const char *, const uint8_t);
     void            insertAt(const char *, size_t);
     void            insertFlagAt(const uint8_t, size_t, size_t);
     void            insertAt(const char *, size_t,const uint8_t);
@@ -88,7 +89,6 @@ public:
 /*
     Text Box Widget
 */
-//TODO:lines, cursor, scrolling
 class TextBox : public Widget{
 private:
     uint16_t                                    width;
@@ -97,6 +97,7 @@ private:
     std::unique_ptr<RopeNode>                   text;
     Cursor                                      cursor;
     Cursor                                      frameCursor;
+    uint16_t                                    frameCursorLine;
 
     void            repositionCursor();
     bool            cursorIsOnNewLine() const;
@@ -122,6 +123,8 @@ public:
     size_t          getTextLength() const;
     std::string     getText(size_t, size_t) const;
     std::string     getText() const;
+    std::pair<uint16_t, uint16_t>
+                    getCursorPosition() const;
     void            insertAtCursor(const char *);
     void            insertLineAtCursor(const char *);
     void            insertAtCursor(const char *, const uint8_t);
@@ -182,12 +185,11 @@ class Bar : public Widget{
 private:
 
     bool                        isActive;
-    uint16_t                    textHeight;
-    uint16_t                    textWidth;
-    uint16_t                    length;
+    uint16_t                    height;
+    uint16_t                    width;
 
 public:
-    Bar(const uint16_t,const uint16_t, const uint16_t);
+    Bar(const uint16_t,const uint16_t, const uint16_t, const uint16_t);
     Bar(const Bar&)                 = delete;
     void operator=(Bar const&)      = delete;
     ~Bar();
@@ -195,11 +197,10 @@ public:
     void            update() override;
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
-    uint16_t        getLength();
     uint16_t        getX();
     uint16_t        getY();
     bool            getIsActive();
-    void            resize(uint16_t);
+    void            resize(uint16_t, uint16_t);
     void            reposition(uint16_t, uint16_t);
     void            activate(bool);
 

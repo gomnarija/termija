@@ -135,6 +135,7 @@ class Termija final{
         uint8_t                             fontHeight;
         uint8_t                             fontSpacing;
         Vector4                             justLooking;
+        Color                               backColor;
 
     public:
         friend void             tra_set_window_size(const uint16_t, const uint16_t);
@@ -245,6 +246,7 @@ void        tra_unload_render_textures();
 RenderTexture2D        tra_get_render_texture();
 void        tra_draw_rectangle(uint16_t, uint16_t, uint16_t, uint16_t);
 void        tra_draw_rectangle_fill(uint16_t, uint16_t, uint16_t, uint16_t);
+void        tra_draw_rectangle_fill_transparent(uint16_t, uint16_t, uint16_t, uint16_t);
 
 
 //font

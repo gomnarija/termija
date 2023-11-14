@@ -80,6 +80,7 @@ void tra_init_termija(uint16_t windowWidth,uint16_t windowHeight,const char * wi
     }
 
     //raylib
+    // SetConfigFlags(FLAG_WINDOW_UNDECORATED);//remove title bar
     InitWindow(windowWidth, windowHeight, windowTitle);
 
     //font

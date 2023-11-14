@@ -16,6 +16,9 @@ void _parse_window_width(const std::string);
 void _parse_window_height(const std::string);
 void _parse_window_title(const std::string);
 void _parse_pane_margin(const std::string);
+void _parse_back_color(const std::string);
+
+Color parse_color(const std::string &, Color);
 
 bool configLoaded = false;
 
@@ -27,7 +30,8 @@ std::map<std::string, void (*)(const std::string)> configFields{
     {"windowWidth",     &_parse_window_width},
     {"windowHeight",    &_parse_window_height},
     {"windowTitle",     &_parse_window_title},
-    {"paneMargin",      &_parse_pane_margin}
+    {"paneMargin",      &_parse_pane_margin},
+    {"backColor",       &_parse_back_color}
 };
 
 
@@ -54,25 +58,12 @@ void _parse_font_height(const std::string field){
 
 void _parse_font_color(const std::string field){
     Termija& termija = Termija::instance();
-    //check that RGB value is valid, "R,G,B"
-    if(std::count(field.begin(), field.end(), ',') != 2){
-        PLOG_ERROR << "invalid RGB value: " << field;
-        return;
-    }
-    std::string valueToken;
-    std::stringstream ss(field);
-    try{
-        std::getline(ss, valueToken, ',');
-        unsigned char redValue = std::stoi(valueToken);
-        std::getline(ss, valueToken, ',');
-        unsigned char greenValue = std::stoi(valueToken);
-        std::getline(ss, valueToken, ',');
-        unsigned char blueValue = std::stoi(valueToken);
+    termija.fontColor = parse_color(field, TERMIJA_COLOR);
+}
 
-        termija.fontColor = {redValue, greenValue, blueValue, 255};
-    }catch(const std::exception& e){
-        PLOG_ERROR << "invalid RGB value: " << field;
-    }
+void _parse_back_color(const std::string field){
+    Termija& termija = Termija::instance();
+    termija.backColor = parse_color(field, TERMIJA_COLOR);
 }
 
 void _parse_window_width(const std::string field){
@@ -97,6 +88,34 @@ void _parse(const std::string field,const std::string value){
         configFields[field](value);
     }else{
         PLOG_WARNING << "unknown config field: " << field;
+    }
+}
+
+/*
+    helpers
+*/
+
+
+Color parse_color(const std::string &str, Color defaultColor){
+    if(std::count(str.begin(), str.end(), ',') != 2){
+        PLOG_ERROR << "invalid RGB value: " << str;
+        return defaultColor;
+    }
+
+    std::string valueToken;
+    std::stringstream ss(str);
+    try{
+        std::getline(ss, valueToken, ',');
+        unsigned char redValue = std::stoi(valueToken);
+        std::getline(ss, valueToken, ',');
+        unsigned char greenValue = std::stoi(valueToken);
+        std::getline(ss, valueToken, ',');
+        unsigned char blueValue = std::stoi(valueToken);
+
+       return {redValue, greenValue, blueValue, 255};
+    }catch(const std::exception& e){
+        PLOG_ERROR << "invalid RGB value: " << str;
+        return defaultColor;
     }
 }
 
@@ -155,6 +174,7 @@ void tra_default_config(){
     termija.fontHeight      = DEFAULT_FONT_HEIGHT;
     termija.fontSpacing     = DEFAULT_FONT_SPACING;
     termija.fontColor       = TERMIJA_COLOR;
+    termija.backColor       = TERMIJA_COLOR;
 
 }
 

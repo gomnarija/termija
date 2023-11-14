@@ -33,6 +33,11 @@ void tra_draw_rectangle_fill(uint16_t topX, uint16_t topY, uint16_t width, uint1
     DrawRectangle(topX, topY, width, height, termija.fontColor);
 }
 
+void tra_draw_rectangle_fill_transparent(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height){
+    const Termija& termija = Termija::instance();
+    DrawRectangle(topX, topY, width, height, ALPHA_DISCARD);
+}
+
 
 void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture, const Shader *backShader){
     const Termija& termija = Termija::instance();
@@ -43,7 +48,7 @@ void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture
     //draw
     // if(backShader != NULL)
     //     BeginShaderMode(*backShader);
-            DrawTextureRec(*backTexture, {0,0,(float)width, (float)height}, {0,0}, termija.fontColor);//TODOR: maybe add separate background color
+            DrawTextureRec(*backTexture, {0,0,(float)width, (float)height}, {0,0}, termija.backColor);
     // if(backShader != NULL)
     //     EndShaderMode();
 }

@@ -477,6 +477,22 @@ void TextBox::deleteAtCursor(){
     }
 }
 
+/*
+    from startIndex until endIndex, not including endIndex
+*/
+void TextBox::deleteAtRange(size_t startIndex, size_t endIndex){
+    if(startIndex >= endIndex || endIndex > this->text->weight){
+        PLOG_ERROR << "invalid range, aborted.";
+        return;
+    }
+    rope_delete_at(this->text.get(), startIndex, (endIndex - startIndex - 1));
+    if(this->cursor.index > this->text->weight){
+        this->cursor.index = this->text->weight;//put at end
+        this->repositionCursor();
+    }
+    //NOTE: can frameCursor also go out of scope ?
+}
+
 void TextBox::backspaceAtCursor(){
     if(this->cursor.index > this->text->weight && this->cursor.index != 0){
         PLOG_ERROR << "invalid cursor index, aborted.";

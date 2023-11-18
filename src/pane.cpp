@@ -43,15 +43,15 @@ void tra_update_pane(Pane& pane){
         pane.oldHeight = pane.height;
     }
 
-    //update widgets
-    for(size_t i = 0; i < pane.widgets.size(); i++){
-        Widget *widget = pane.widgets[i].get();
-        if(widget == nullptr){
-            PLOG_ERROR << "widget at index: " << i << " is NULL, skipped.";
-            continue;
-        }
-        widget->update();
-    }
+    //update widgets DEPRECATED
+    // for(size_t i = 0; i < pane.widgets.size(); i++){
+    //     Widget *widget = pane.widgets[i].get();
+    //     if(widget == nullptr){
+    //         PLOG_ERROR << "widget at index: " << i << " is NULL, skipped.";
+    //         continue;
+    //     }
+    //     widget->update();
+    // }
 }
 
 void tra_draw_pane(const Pane& pane){

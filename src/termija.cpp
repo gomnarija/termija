@@ -506,6 +506,15 @@ Font* tra_get_font(){
     return &(termija.font);
 }
 
+uint16_t tra_get_font_width(){
+    Termija& termija = Termija::instance();
+    return (termija.fontWidth+termija.fontSpacing);
+}
+uint16_t tra_get_font_height(){
+    Termija& termija = Termija::instance();
+    return (termija.fontHeight+termija.fontSpacing);
+}
+
 void tra_push_render_texture_to_garbage(RenderTexture2D renderTexture2D){
     Termija& termija = Termija::instance();
     termija.renderTextureGarbageStack.push(renderTexture2D);

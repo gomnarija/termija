@@ -15,6 +15,7 @@ struct Cursor final{
     uint16_t        x;
     uint16_t        y;
     bool            isDrawn;
+    bool            isDisplayed;
     uint8_t         blinksPerSecond;
     float           blinkTimer;
 
@@ -23,6 +24,7 @@ struct Cursor final{
         x{0},
         y{0},
         isDrawn{true},
+        isDisplayed{true},
         blinksPerSecond{2},
         blinkTimer{0} {}
 };
@@ -42,7 +44,6 @@ protected:
 public:
     virtual ~Widget(){}
 
-    virtual void update()=0;
     virtual void draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t)=0;
     virtual void on_pane_resize(const int16_t,const int16_t)=0;
 };
@@ -59,11 +60,11 @@ private:
 
 public:
     Text(const uint16_t,const uint16_t,const char *);
+    Text(const uint16_t,const uint16_t,const char *, const uint8_t);
     Text(const Text&)               = delete;
     void operator=(Text const&)     = delete;
     ~Text();
 
-    void            update() override;
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
     uint16_t        length();//measure-sets rope weight
@@ -91,8 +92,8 @@ public:
 */
 class TextBox : public Widget{
 private:
-    uint16_t                                    width;
-    uint16_t                                    height;
+    uint16_t                                    widthTxt;
+    uint16_t                                    heightTxt;
     uint8_t                                     margin;
     std::unique_ptr<RopeNode>                   text;
     Cursor                                      cursor;
@@ -110,7 +111,6 @@ public:
     void operator=(TextBox const&)          = delete;
     ~TextBox();
 
-    void            update() override;
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
     uint16_t        getWidth() const;
@@ -138,6 +138,8 @@ public:
     void            cursorWalkDown(uint16_t);
     void            frameCursorMove(int16_t);
     bool            isCursorVisible();
+    void            displayCursor(bool);
+    bool            isCursorDisplayed();
     void            findCursor();
     uint16_t        countLinesToCursorUp();
     uint16_t        countLinesToCursorDown();
@@ -157,16 +159,17 @@ class Box : public Widget{
 private:
 
     bool                        isActive;
-    uint16_t                    width;
-    uint16_t                    height;
+    uint16_t                    widthPx;
+    uint16_t                    heightPx;
+    bool                        fillBack;
 
 public:
     Box(const uint16_t,const uint16_t, const uint16_t, const uint16_t);
+    Box(const uint16_t,const uint16_t, const uint16_t, const uint16_t, bool);
     Box(const Box&)                 = delete;
     void operator=(Box const&)      = delete;
     ~Box();
 
-    void            update() override;
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
     uint16_t        getWidth();
@@ -185,8 +188,8 @@ class Bar : public Widget{
 private:
 
     bool                        isActive;
-    uint16_t                    height;
-    uint16_t                    width;
+    uint16_t                    heightPx;
+    uint16_t                    widthPx;
 
 public:
     Bar(const uint16_t,const uint16_t, const uint16_t, const uint16_t);
@@ -194,11 +197,12 @@ public:
     void operator=(Bar const&)      = delete;
     ~Bar();
 
-    void            update() override;
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
     uint16_t        getX();
     uint16_t        getY();
+    uint16_t        getWidth();
+    uint16_t        getHeight();
     bool            getIsActive();
     void            resize(uint16_t, uint16_t);
     void            reposition(uint16_t, uint16_t);
@@ -226,11 +230,12 @@ struct Pane;
 class List : public Widget{
 private:
     Pane                        *pane;
-    uint16_t                    widthInText;
-    uint16_t                    heightInText;
+    uint16_t                    widthTxt;
+    uint16_t                    heightTxt;
     uint16_t                    startingIndex=0;
     uint16_t                    selectedIndex=0;
 
+    //TODO: remove this
     uint8_t                     columnSpacing=0;//DO NOT CHANGE THIS!!
     uint8_t                     rowSpacing=0;// STARTED GOING FOR CHAR PERFECT!!
 
@@ -250,7 +255,6 @@ public:
     void operator=(List const&)     = delete;
     ~List();
 
-    void            update() override;
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
     void            updateTable();
@@ -268,6 +272,46 @@ public:
     void            showColumNames(bool);
 
 };
+
+
+/*
+    PopUp Widget
+*/
+class PopUp : public Widget{
+private:
+    const char*                 shadow = "░";
+
+    bool                        isActive;
+    uint16_t                    widthPx;
+    uint16_t                    heightPx;
+
+    std::unique_ptr<Box>        backBox;
+    std::unique_ptr<Bar>        titleBar;
+    std::unique_ptr<Text>       titleText;
+    std::vector<std::unique_ptr<Widget>>
+                                widgets;
+
+public:
+    PopUp(const uint16_t,const uint16_t, const uint16_t, const uint16_t);
+    PopUp(const uint16_t,const uint16_t, const uint16_t, const uint16_t, const char *);
+    PopUp(const PopUp&)                 = delete;
+    void operator=(PopUp const&)        = delete;
+    ~PopUp();
+
+    void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
+    void            on_pane_resize(const int16_t,const int16_t) override;
+    uint16_t        getWidth();
+    uint16_t        getHeight();
+    uint16_t        getX();
+    uint16_t        getY();
+    void            resize(uint16_t, uint16_t);
+    void            activate(bool);
+    Widget*         addWidget(std::unique_ptr<Widget> widget);
+
+};
+
+
+
 
 }
 

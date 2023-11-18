@@ -38,6 +38,56 @@ void tra_draw_rectangle_fill_transparent(uint16_t topX, uint16_t topY, uint16_t 
     DrawRectangle(topX, topY, width, height, ALPHA_DISCARD);
 }
 
+void tra_draw_rectangle_fill_char(uint16_t topX, uint16_t topY, uint16_t width, uint16_t height, const char *fillChar){
+    Termija &termija = tra_get_instance();
+    Font font = *tra_get_font();
+    /*
+        draw fillChar without line spacing, 
+        width and height are counted with ls and
+        filled with fillChar without ls, splitting
+        it where needed.
+    */
+    uint16_t curX=0, curY=0, curWidth, curHeight;
+    uint16_t startingHeight = height;
+    while(width > 0){
+        while(height > 0){
+            Vector2 position{(float)(topX + (curX)), (float)(topY + (curY))};
+            curWidth   = std::min((uint16_t)termija.fontWidth, width);
+            curHeight  = std::min((uint16_t)termija.fontHeight, height);
+            int codepointByteCount = 0;
+            int codepoint = GetCodepoint(fillChar, &codepointByteCount);
+            // Character index position in sprite font
+            // NOTE: In case a codepoint is not available in the font, index returned points to '?'
+            int index = GetGlyphIndex(font, codepoint);
+            float scaleFactor = termija.fontHeight/font.baseSize;     // Character quad scaling factor
+
+            // Character destination rectangle on screen
+            // NOTE: We consider glyphPadding on drawing
+            Rectangle dstRec = { position.x,
+                              position.y,
+                              curWidth, curHeight};
+
+            // Character source rectangle from font texture atlas
+            // NOTE: We consider chars padding when drawing, it could be required for outline/glow shader effects
+            Rectangle srcRec = { font.recs[index].x, font.recs[index].y,
+                                curWidth, curHeight};
+
+            // Draw the character texture on the screen
+            DrawTexturePro(font.texture, srcRec, dstRec, (Vector2){ 0, 0 }, 0.0f, termija.fontColor);
+
+            height -= curHeight;
+            curY += curHeight;
+        }
+        width -= curWidth;
+        height = startingHeight;
+        curX += curWidth;
+        curY = 0;
+    }
+
+
+
+}
+
 
 void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture, const Shader *backShader){
     const Termija& termija = Termija::instance();
@@ -55,7 +105,7 @@ void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture
 
 
 void tra_draw_cursor(uint16_t xPaneStart, uint16_t yPaneStart, Cursor &cursor){
-    if(!cursor.isDrawn){
+    if(!cursor.isDrawn || !cursor.isDisplayed){
         return;
     }
     const Termija& termija = Termija::instance();
@@ -379,7 +429,6 @@ void _DrawTextEx(Font font, const char *text, Vector2 position, float fontSize, 
         int codepointByteCount = 0;
         int codepoint = GetCodepoint(&text[i], &codepointByteCount);
         int index = GetGlyphIndex(font, codepoint);
-
         // NOTE: Normally we exit the decoding sequence as soon as a bad byte is found (and return 0x3f)
         // but we need to draw all of the bad bytes using the '?' symbol moving one byte
         if (codepoint == 0x3f) codepointByteCount = 1;

@@ -16,12 +16,12 @@ margin{0}
     this->x = x;
     this->y = y;
     //size
-    this->width = width;
-    this->height = height;
+    this->widthTxt = width;
+    this->heightTxt = height;
     //rope
     this->text = rope_create_empty();
     //frameCursor
-    this->frameCursor.isDrawn = false;
+    this->frameCursor.isDisplayed = false;
     this->frameCursorLine = 0;
 }
 
@@ -30,9 +30,7 @@ TextBox::~TextBox(){
     rope_destroy(std::move(this->text));
 }
 
-void TextBox::update(){
 
-}
 
 void TextBox::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
     //draw
@@ -49,11 +47,11 @@ void TextBox::draw(const uint16_t startX,const uint16_t startY,const uint16_t te
 
 //TODO: redo
 void TextBox::on_pane_resize(int16_t paneTextWidth, int16_t paneTextHeight){
-    if(paneTextWidth < this->width){
-        this->width = paneTextWidth;
+    if(paneTextWidth < this->widthTxt){
+        this->widthTxt = paneTextWidth;
     }
-    if(paneTextHeight < this->height){
-        this->height = paneTextHeight;
+    if(paneTextHeight < this->heightTxt){
+        this->heightTxt = paneTextHeight;
     }
 
     this->repositionFrameCursor();
@@ -61,16 +59,16 @@ void TextBox::on_pane_resize(int16_t paneTextWidth, int16_t paneTextHeight){
 }
 
 uint16_t TextBox::getWidth() const{
-    return this->width;
+    return this->widthTxt;
 }
 
 uint16_t TextBox::getHeight() const{
-    return this->height;
+    return this->heightTxt;
 }
 
 void TextBox::setSize(const uint16_t width,const uint16_t height){
-    this->width = width;
-    this->height = height;
+    this->widthTxt = width;
+    this->heightTxt = height;
 
     this->repositionFrameCursor();
     this->repositionCursor();
@@ -90,12 +88,12 @@ TextBox::setCursorIndex(size_t index){
 
 //TODO:margins, scrollbar
 uint16_t TextBox::getTextWidth() const{
-    return this->width;
+    return this->widthTxt;
 }
 
 //TODO:margins, scrollbar
 uint16_t TextBox::getTextHeight() const{
-    return this->height;
+    return this->heightTxt;
 }
 
 
@@ -281,6 +279,21 @@ void TextBox::frameCursorMove(int16_t diff){
 */
 bool TextBox::isCursorVisible(){
     return this->cursor.isDrawn;
+}
+
+/*
+    sets cursor visibility
+*/
+void TextBox::displayCursor(bool isDisplayed){
+    this->cursor.isDisplayed = isDisplayed;
+}
+
+
+/*
+    checks if cursor is being displayed
+*/
+bool TextBox::isCursorDisplayed(){
+    return this->cursor.isDisplayed;
 }
 
 
@@ -505,6 +518,7 @@ void TextBox::cursorWalkRight(uint16_t diff){
 }
 
 void TextBox::cursorWalkUp(uint16_t diff){
+    diff = 1;//limit it for now, should work with bigger diff but I'm not completely sure
     uint16_t    leftDiff = 0;
     size_t      currentIndex = this->cursor.index==this->text->weight&&!this->cursorIsOnNewLine()?this->cursor.index-1:this->cursor.index;
     size_t      weightUntilPrevNewLine = weight_until_prev_new_line(this->text.get(), currentIndex);
@@ -532,6 +546,7 @@ void TextBox::cursorWalkUp(uint16_t diff){
 }
 
 void TextBox::cursorWalkDown(uint16_t diff){
+    diff = 1;//limit it for now, should work with bigger diff but I'm not completely sure
     if(this->cursor.index == this->text->weight)
         return;//cursor at rope end
     uint16_t    rightDiff = 0;
@@ -540,20 +555,38 @@ void TextBox::cursorWalkDown(uint16_t diff){
     //count how much should index be moved
     while(diff > 0 && currentIndex <= this->text->weight){
         uint16_t yDiff = ((weightUntilNextNewLine)/this->getTextWidth());
-        if(yDiff >= diff){//cursor goes inside this newlined block
+        if(yDiff >= diff){//cursor can be placed inside this newlined block
             rightDiff += (diff * this->getTextWidth());
             break;
         }else{//continue to the next newlined block
+            //count length from start
             uint16_t leftover = ((weight_until_prev_new_line(this->text.get(), currentIndex)-1) % this->getTextWidth());
-            size_t prevWeightUntilNextNewLine = weightUntilNextNewLine;
-            currentIndex = (currentIndex+prevWeightUntilNextNewLine+1)<this->text->weight?(currentIndex+prevWeightUntilNextNewLine+1):this->text->weight-1;
+            size_t prevWeightUntilNextNewLine = weightUntilNextNewLine;//jump to next line
+            currentIndex = (currentIndex+prevWeightUntilNextNewLine)<this->text->weight?(currentIndex+prevWeightUntilNextNewLine):this->text->weight-1;
             weightUntilNextNewLine = weight_until_next_new_line(this->text.get(), currentIndex);
-            rightDiff += prevWeightUntilNextNewLine;
-            //try placing cursor at previous x, if theres space
-            if((leftover > 0) && (weightUntilNextNewLine) >= leftover)
-                rightDiff += leftover;
-            yDiff++; 
-            diff = diff>yDiff?diff-yDiff:0;
+            rightDiff += prevWeightUntilNextNewLine;//count how many lines it passed
+            yDiff+=((leftover + prevWeightUntilNextNewLine + 1)/this->getTextWidth())+1;
+            //it's on the right line, try placing it on right place inside the line
+            if(yDiff==diff){
+                //try adding leftover, which is the length from the start before moving to the next line
+                if((leftover > 0) && (weightUntilNextNewLine) > leftover){
+                    rightDiff += leftover;
+                }//if there is no space for full leftover, place it at the end of the line
+                else if((weightUntilNextNewLine) <= leftover){
+                    rightDiff += weightUntilNextNewLine-1;
+                }
+                break;//done
+            }
+            //this happens when cursor gets placed at newline and goes over to the next line
+            //  in that case just return before new line
+            else if(yDiff>diff){
+                rightDiff--;
+                break;//done
+            }
+            else{
+                //there is still some lines to go, continue
+                diff = diff>yDiff?diff-yDiff:0;
+            }
         }
     }
     //move back

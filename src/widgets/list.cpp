@@ -11,8 +11,8 @@ List::List(const uint16_t x,const uint16_t y,const uint16_t width, const uint16_
     this->pane = pane;
     this->x = x;
     this->y = y;
-    this->widthInText = width;
-    this->heightInText = height;
+    this->widthTxt = width;
+    this->heightTxt = height;
 }
 
 
@@ -21,9 +21,6 @@ List::~List(){
     //TODO
 }
 
-void List::update(){
-
-}
 
 void List::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
     termija::Termija &termija = termija::tra_get_instance();
@@ -47,14 +44,12 @@ void List::on_pane_resize(const int16_t paneTextWidth,const int16_t paneTextHeig
 
 uint16_t
 List::getWidth(){
-    Termija &termija = tra_get_instance();
-    uint16_t textWidth = (termija.fontWidth+termija.fontSpacing);
-    return this->widthInText * textWidth;
+    return this->widthTxt * tra_get_font_width();
 }
 
 uint16_t
 List::getHeight(){
-    return this->heightInText;
+    return this->heightTxt * tra_get_font_height();
 }
 
 uint16_t
@@ -130,7 +125,7 @@ List::updateTable(){
             uint16_t index = (this->isShowColumnNames?1:0) + entry.first - this->startingIndex;
             Text* textWidget = entry.second;
             //inside list
-            if(index < this->heightInText && (index > 0 || !this->isShowColumnNames) && textWidget->getX() < this->getWidth()){
+            if(index < this->heightTxt && (index > 0 || !this->isShowColumnNames) && textWidget->getX() < this->getWidth()){
                 //y position based on index and startingIndex
                 textWidget->setPosition(textWidget->getX(), column.y + (index * textHeight) + this->rowSpacing);
                 textWidget->activate(true);
@@ -251,9 +246,9 @@ List::selectDown(uint16_t diff){
     if((this->selectedIndex+diff) <= this->getHighestRowIndex()){
         this->selectedIndex += diff;
         PLOG_DEBUG << this->selectedIndex;
-        PLOG_DEBUG << (this->startingIndex + this->heightInText - (this->isShowColumnNames?1:0));
-        if(this->selectedIndex >= (this->startingIndex + this->heightInText - (this->isShowColumnNames?1:0))){
-            this->startingIndex = this->selectedIndex - (this->heightInText - (this->isShowColumnNames?2:1));//1 because it starts from 0, and another if there is headers
+        PLOG_DEBUG << (this->startingIndex + this->heightTxt - (this->isShowColumnNames?1:0));
+        if(this->selectedIndex >= (this->startingIndex + this->heightTxt - (this->isShowColumnNames?1:0))){
+            this->startingIndex = this->selectedIndex - (this->heightTxt - (this->isShowColumnNames?2:1));//1 because it starts from 0, and another if there is headers
             PLOG_DEBUG << "teraj";
         }
         this->updateTable();

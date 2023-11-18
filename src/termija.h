@@ -25,7 +25,7 @@ inline const char               *DEFAULT_FONT_PATH                  = "res/fonts
 inline const uint8_t             DEFAULT_FONT_WIDTH                 = 8;
 inline const uint8_t             DEFAULT_FONT_HEIGHT                = 16;
 inline const uint8_t             DEFAULT_FONT_SPACING               = 1;
-inline const uint16_t            DEFAULT_TTF_GLYPH_COUNT            = 666;
+inline const uint16_t            DEFAULT_TTF_GLYPH_COUNT            = 10000;//maybe too much
 //shaders
 inline const uint16_t            GLSL_VERSION                       = 330;
 inline const char               *DEFAULT_BASE_SHADER_PATH           = "res/shaders/base.vs";
@@ -247,13 +247,15 @@ RenderTexture2D        tra_get_render_texture();
 void        tra_draw_rectangle(uint16_t, uint16_t, uint16_t, uint16_t);
 void        tra_draw_rectangle_fill(uint16_t, uint16_t, uint16_t, uint16_t);
 void        tra_draw_rectangle_fill_transparent(uint16_t, uint16_t, uint16_t, uint16_t);
-
+void        tra_draw_rectangle_fill_char(uint16_t, uint16_t, uint16_t, uint16_t, const char *);
 
 //font
 void        tra_load_font();
 void        tra_load_font(const char*, uint8_t, uint16_t);
 Font*       tra_get_font();
 Texture2D*  tra_get_font_inverted();
+uint16_t    tra_get_font_width();
+uint16_t    tra_get_font_height();
 
 //config
 void        tra_load_config(const char *);

@@ -9,6 +9,9 @@
 namespace termija{
 
 Text::Text(const uint16_t x,const uint16_t y, const char *text):
+    Text(x, y, text, 0){}
+
+Text::Text(const uint16_t x,const uint16_t y, const char *text, const uint8_t flags):
 textWidth{0},
 textHeight{0},
 isActive{true}
@@ -21,13 +24,9 @@ isActive{true}
     this->x = x;
     this->y = y;
     //create rope
-    this->text = rope_create(text);
+    this->text = rope_create(text, flags);
 }
 
-
-void Text::update(){
-
-}
 
 void Text::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
     if(this->text == nullptr){

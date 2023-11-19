@@ -65,12 +65,12 @@ void tra_draw_rectangle_fill_char(uint16_t topX, uint16_t topY, uint16_t width, 
             // NOTE: We consider glyphPadding on drawing
             Rectangle dstRec = { position.x,
                               position.y,
-                              curWidth, curHeight};
+                              (float)curWidth, (float)curHeight};
 
             // Character source rectangle from font texture atlas
             // NOTE: We consider chars padding when drawing, it could be required for outline/glow shader effects
             Rectangle srcRec = { font.recs[index].x, font.recs[index].y,
-                                curWidth, curHeight};
+                                (float)curWidth, (float)curHeight};
 
             // Draw the character texture on the screen
             DrawTexturePro(font.texture, srcRec, dstRec, (Vector2){ 0, 0 }, 0.0f, termija.fontColor);
@@ -107,6 +107,7 @@ void tra_draw_back(uint16_t width, uint16_t height, const Texture2D *backTexture
 void tra_draw_cursor(uint16_t xPaneStart, uint16_t yPaneStart, Cursor &cursor){
     if(!cursor.isDrawn || !cursor.isDisplayed){
         return;
+
     }
     const Termija& termija = Termija::instance();
     //get font

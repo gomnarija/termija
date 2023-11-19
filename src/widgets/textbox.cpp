@@ -9,8 +9,7 @@
 
 namespace termija{
 
-TextBox::TextBox(const uint16_t x,const uint16_t y,const uint16_t width,const uint16_t height):
-margin{0}
+TextBox::TextBox(const uint16_t x,const uint16_t y,const uint16_t width,const uint16_t height)
 {
     //coords
     this->x = x;
@@ -23,6 +22,10 @@ margin{0}
     //frameCursor
     this->frameCursor.isDisplayed = false;
     this->frameCursorLine = 0;
+    //line numbers
+    this->isLineNumbersDisplayed = false;
+    this->lineNumbersText = std::make_unique<termija::Text>(x, y, "");
+    lineNumbersText->setTextHeight(this->getTextHeightTotal());
 }
 
 
@@ -34,14 +37,19 @@ TextBox::~TextBox(){
 
 void TextBox::draw(const uint16_t startX,const uint16_t startY,const uint16_t textWidth,const uint16_t textHeight){
     //draw
+    uint16_t textToStartWidth = (this->getTextStartX()) / tra_get_font_width();
+    uint16_t textToStartHeight = (this->getTextStartY()) / tra_get_font_height();
     if(this->text->weight > 0)
         tra_draw_text(this->text.get(), 
                         startX, startY, 
-                        this->x, this->y, 
-                        std::min(textWidth, this->getTextWidth()), std::min(textHeight, this->getTextHeight()), 
+                        this->getTextStartX(), this->getTextStartY(), 
+                        std::min((uint16_t)(textWidth - textToStartWidth), this->getTextWidth()), 
+                        std::min((uint16_t)(textHeight - textToStartHeight), this->getTextHeight()), 
                         this->frameCursor);
-
-    tra_draw_cursor(startX+this->x, startY+this->y, this->cursor);
+    tra_draw_cursor(startX+this->getTextStartX(), startY+this->getTextStartY(), this->cursor);
+    //line numbers
+    if(this->isLineNumbersDisplayed)
+        this->lineNumbersText->draw(startX, startY, textWidth, textHeight);
 
 }
 
@@ -58,11 +66,35 @@ void TextBox::on_pane_resize(int16_t paneTextWidth, int16_t paneTextHeight){
     this->repositionCursor();
 }
 
-uint16_t TextBox::getWidth() const{
+uint16_t
+TextBox::getX() const{
+    return this->x;
+}
+
+uint16_t
+TextBox::getY() const{
+    return this->y;
+}
+
+uint16_t 
+TextBox::getTextStartX() const{
+    if(this->isLineNumbersDisplayed){
+        return this->lineNumbersText->getX() + ((this->lineNumbersText->getTextWidth() + this->lineNumbersMargin) * tra_get_font_width());
+    }else{
+        return this->getX();
+    }
+}
+
+uint16_t 
+TextBox::getTextStartY() const{
+    return this->getY();
+}
+
+uint16_t TextBox::getTextWidthTotal() const{
     return this->widthTxt;
 }
 
-uint16_t TextBox::getHeight() const{
+uint16_t TextBox::getTextHeightTotal() const{
     return this->heightTxt;
 }
 
@@ -86,14 +118,16 @@ TextBox::setCursorIndex(size_t index){
 
 
 
-//TODO:margins, scrollbar
 uint16_t TextBox::getTextWidth() const{
-    return this->widthTxt;
+    if(this->isLineNumbersDisplayed){
+        return this->getTextWidthTotal() - (this->lineNumbersText->getTextWidth() + this->lineNumbersMargin);
+    }else{
+        return this->getTextWidthTotal();
+    }
 }
 
-//TODO:margins, scrollbar
 uint16_t TextBox::getTextHeight() const{
-    return this->heightTxt;
+    return this->getTextHeightTotal();
 }
 
 
@@ -171,7 +205,7 @@ void TextBox::repositionCursor(){
         }
     }
     //cursor inside frame
-    if(currentY>0 && currentY <= this->getHeight()){
+    if(currentY>0 && currentY <= this->getTextHeight()){
         this->cursor.y = currentY-1;//starts from 0
         this->cursor.isDrawn = true;
     }
@@ -277,7 +311,7 @@ void TextBox::frameCursorMove(int16_t diff){
 /*
     checks if cursor index is visible
 */
-bool TextBox::isCursorVisible(){
+bool TextBox::isCursorVisible() const{
     return this->cursor.isDrawn;
 }
 
@@ -292,7 +326,7 @@ void TextBox::displayCursor(bool isDisplayed){
 /*
     checks if cursor is being displayed
 */
-bool TextBox::isCursorDisplayed(){
+bool TextBox::isCursorDisplayed() const{
     return this->cursor.isDisplayed;
 }
 
@@ -319,6 +353,7 @@ void TextBox::repositionFrameCursor(){
     //count at what line frameCursor is
     if(this->frameCursor.index == 0){
         this->frameCursorLine = 0;
+        this->updateLineNumbers();
         return;
     }
 
@@ -340,8 +375,33 @@ void TextBox::repositionFrameCursor(){
     }
 
     this->frameCursorLine = lines;
+    this->updateLineNumbers();
 }
 
+void 
+TextBox::updateLineNumbers(){
+    if(!this->isLineNumbersDisplayed)
+        return;
+
+    std::string lines;
+    uint16_t bottomLine = this->frameCursorLine + this->lineNumbersText->getTextHeight() - 1;
+    uint8_t numbersWidth = std::to_string(bottomLine).size();
+    for(uint16_t cline=this->frameCursorLine;cline<=bottomLine;cline++){
+        std::string line = std::to_string(cline);
+        if(line.size() < numbersWidth)
+            line = std::string("0",numbersWidth - line.size()) + line;
+        lines += line;
+    }
+    this->lineNumbersText->setTextWidth(numbersWidth);
+    this->lineNumbersText->setText(lines.c_str());
+}
+
+
+void
+TextBox::displayLineNumbers(bool isDispayed){
+    this->isLineNumbersDisplayed = isDispayed;
+    this->updateLineNumbers();
+}
 
 void TextBox::insertAtCursor(const char *text){
     if(text == nullptr){

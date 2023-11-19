@@ -94,16 +94,21 @@ class TextBox : public Widget{
 private:
     uint16_t                                    widthTxt;
     uint16_t                                    heightTxt;
-    uint8_t                                     margin;
     std::unique_ptr<RopeNode>                   text;
     Cursor                                      cursor;
     Cursor                                      frameCursor;
     uint16_t                                    frameCursorLine;
+    std::unique_ptr<Text>                       lineNumbersText;
+    bool                                        isLineNumbersDisplayed;
+    uint8_t                                     lineNumbersMargin=1;
 
     void            repositionCursor();
     bool            cursorIsOnNewLine() const;
     bool            frameCursorIsOnNewLine() const;
     void            repositionFrameCursor();
+    void            updateLineNumbers();
+    uint16_t        getTextStartX() const;
+    uint16_t        getTextStartY() const;
 
 public:
     TextBox(const uint16_t,const uint16_t,const uint16_t,const uint16_t);
@@ -113,12 +118,14 @@ public:
 
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
-    uint16_t        getWidth() const;
-    uint16_t        getHeight() const;
+    uint16_t        getTextWidthTotal() const;
+    uint16_t        getTextHeightTotal() const;
     void            setSize(const uint16_t,const uint16_t);
     void            setCursorIndex(size_t);
     uint16_t        getTextWidth() const;
     uint16_t        getTextHeight() const;
+    uint16_t        getX() const;
+    uint16_t        getY() const;
     size_t          getCurrentIndex() const;
     size_t          getTextLength() const;
     std::string     getText(size_t, size_t) const;
@@ -138,14 +145,15 @@ public:
     void            cursorWalkUp(uint16_t);
     void            cursorWalkDown(uint16_t);
     void            frameCursorMove(int16_t);
-    bool            isCursorVisible();
+    bool            isCursorVisible() const;
     void            displayCursor(bool);
-    bool            isCursorDisplayed();
+    bool            isCursorDisplayed() const;
     void            findCursor();
     uint16_t        countLinesToCursorUp();
     uint16_t        countLinesToCursorDown();
     void            scrollToEnd();
     void            scrollToBeginning();
+    void            displayLineNumbers(bool);
     void            clear();
 
     RopeLeafIterator    getRopeLeafIterator();

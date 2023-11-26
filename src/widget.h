@@ -53,7 +53,7 @@ public:
 */
 class Text : public Widget{
 private:
-    bool                            isActive;
+    bool                            _isActive;
     uint16_t                        textWidth;
     uint16_t                        textHeight;
     std::unique_ptr<RopeNode>       text;
@@ -84,7 +84,40 @@ public:
     void            deleteAt(const size_t,const uint16_t);
     void            underline();
     void            activate(bool);
+    bool            isActive() const;
 
+};
+
+/*
+    ScrollBar Widget
+*/
+class ScrollBar : public Widget{
+private:
+    const char*                 back = "░";
+
+    bool                        _isActive;
+    uint16_t                    heightTxt;
+    uint8_t                     numberOfSegments;
+    uint8_t                     currentSegment;
+    uint16_t                    cursorHeight;
+    uint16_t                    cursorY;
+
+public:
+    ScrollBar(const uint16_t,const uint16_t, const uint16_t);
+    ScrollBar(const ScrollBar&)                 = delete;
+    void operator=(ScrollBar const&)      = delete;
+    ~ScrollBar();
+
+    void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
+    void            on_pane_resize(const int16_t,const int16_t) override;
+    uint16_t        getX();
+    uint16_t        getY();
+    uint16_t        getTextHeight();
+    void            resize(uint16_t, uint16_t);
+    void            reposition(uint16_t, uint16_t);
+    void            activate(bool);
+    bool            isActive() const;
+    void            setSegments(uint8_t, uint8_t);
 };
 
 /*
@@ -98,15 +131,19 @@ private:
     Cursor                                      cursor;
     Cursor                                      frameCursor;
     uint16_t                                    frameCursorLine;
+    uint16_t                                    numberOfLines;
     std::unique_ptr<Text>                       lineNumbersText;
-    bool                                        isLineNumbersDisplayed;
     uint8_t                                     lineNumbersMargin=1;
+    std::unique_ptr<ScrollBar>                  scrollBar;
+    uint8_t                                     scrollBarMargin=1;
 
     void            repositionCursor();
     bool            cursorIsOnNewLine() const;
     bool            frameCursorIsOnNewLine() const;
     void            repositionFrameCursor();
     void            updateLineNumbers();
+    void            updateScrollBar();
+    void            countNumberOfLines();
     uint16_t        getTextStartX() const;
     uint16_t        getTextStartY() const;
 
@@ -154,6 +191,9 @@ public:
     void            scrollToEnd();
     void            scrollToBeginning();
     void            displayLineNumbers(bool);
+    bool            isLineNumbersDisplayed() const;
+    void            displayScrollBar(bool);
+    bool            isScrollBarDisplayed() const;
     void            clear();
 
     RopeLeafIterator    getRopeLeafIterator();
@@ -212,7 +252,6 @@ public:
     uint16_t        getY();
     uint16_t        getWidth();
     uint16_t        getHeight();
-    bool            getIsActive();
     void            resize(uint16_t, uint16_t);
     void            reposition(uint16_t, uint16_t);
     void            activate(bool);
@@ -267,10 +306,10 @@ public:
     void            draw(const uint16_t,const uint16_t,const uint16_t,const uint16_t) override;
     void            on_pane_resize(const int16_t,const int16_t) override;
     void            updateTable();
-    uint16_t        getHeight();
     uint16_t        getX();
     uint16_t        getY();
     uint16_t        getWidth();
+    uint16_t        getHeight();
     void            insertColumn(ListColumn);
     void            insertRow(std::vector<std::string>&, uint16_t);
     void            insertRow(std::vector<std::string>&);

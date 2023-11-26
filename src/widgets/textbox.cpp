@@ -22,10 +22,14 @@ TextBox::TextBox(const uint16_t x,const uint16_t y,const uint16_t width,const ui
     //frameCursor
     this->frameCursor.isDisplayed = false;
     this->frameCursorLine = 0;
+    this->numberOfLines = 0;
     //line numbers
-    this->isLineNumbersDisplayed = false;
-    this->lineNumbersText = std::make_unique<termija::Text>(x, y, "");
+    this->lineNumbersText = std::make_unique<termija::Text>(0, 0, "");
     lineNumbersText->setTextHeight(this->getTextHeightTotal());
+    this->displayLineNumbers(false);
+    //scrollbar
+    this->scrollBar = std::make_unique<termija::ScrollBar>(((this->getTextWidthTotal()-1) * tra_get_font_width()), 0, this->getTextHeightTotal());
+    this->displayScrollBar(false);
 }
 
 
@@ -47,10 +51,14 @@ void TextBox::draw(const uint16_t startX,const uint16_t startY,const uint16_t te
                         std::min((uint16_t)(textHeight - textToStartHeight), this->getTextHeight()), 
                         this->frameCursor);
     tra_draw_cursor(startX+this->getTextStartX(), startY+this->getTextStartY(), this->cursor);
+    uint16_t childX = startX + this->getX();
+    uint16_t childY = startY + this->getY();
     //line numbers
-    if(this->isLineNumbersDisplayed)
-        this->lineNumbersText->draw(startX, startY, textWidth, textHeight);
-
+    if(this->isLineNumbersDisplayed())
+        this->lineNumbersText->draw(childX, childY, this->getTextWidthTotal(), this->getTextHeightTotal());
+    //scrollbar
+    if(this->isScrollBarDisplayed())
+        this->scrollBar->draw(childX, childY, this->getTextWidthTotal(), this->getTextHeightTotal());
 }
 
 //TODO: redo
@@ -78,8 +86,8 @@ TextBox::getY() const{
 
 uint16_t 
 TextBox::getTextStartX() const{
-    if(this->isLineNumbersDisplayed){
-        return this->lineNumbersText->getX() + ((this->lineNumbersText->getTextWidth() + this->lineNumbersMargin) * tra_get_font_width());
+    if(this->isLineNumbersDisplayed()){
+        return this->getX() + ((this->lineNumbersText->getTextWidth() + this->lineNumbersMargin) * tra_get_font_width());
     }else{
         return this->getX();
     }
@@ -119,11 +127,15 @@ TextBox::setCursorIndex(size_t index){
 
 
 uint16_t TextBox::getTextWidth() const{
-    if(this->isLineNumbersDisplayed){
-        return this->getTextWidthTotal() - (this->lineNumbersText->getTextWidth() + this->lineNumbersMargin);
-    }else{
-        return this->getTextWidthTotal();
+    uint16_t width = this->getTextWidthTotal();
+    if(this->isLineNumbersDisplayed()){
+        width -= (this->lineNumbersText->getTextWidth() + this->lineNumbersMargin);
     }
+    if(this->isScrollBarDisplayed()){
+        width -= 1 + this->scrollBarMargin;
+    }
+
+    return width;
 }
 
 uint16_t TextBox::getTextHeight() const{
@@ -209,6 +221,9 @@ void TextBox::repositionCursor(){
         this->cursor.y = currentY-1;//starts from 0
         this->cursor.isDrawn = true;
     }
+
+
+    this->updateScrollBar();
 }
 
 bool TextBox::cursorIsOnNewLine() const{
@@ -380,7 +395,7 @@ void TextBox::repositionFrameCursor(){
 
 void 
 TextBox::updateLineNumbers(){
-    if(!this->isLineNumbersDisplayed)
+    if(!this->isLineNumbersDisplayed())
         return;
 
     std::string lines;
@@ -398,9 +413,41 @@ TextBox::updateLineNumbers(){
 
 
 void
+TextBox::updateScrollBar(){
+    if(!this->isScrollBarDisplayed())
+        return;
+
+
+    uint8_t numberOfSegments = std::min((uint16_t)((this->numberOfLines / this->getTextHeightTotal())+1), this->scrollBar->getTextHeight());
+    uint16_t cursorY = (this->frameCursorLine + this->cursor.y);
+    uint16_t segmentHeight = this->numberOfLines / numberOfSegments;
+    uint8_t currentSegment = cursorY > 0 ? (1+(cursorY/ segmentHeight)) : 1;
+    this->scrollBar->setSegments(numberOfSegments, currentSegment);
+}
+
+
+void
 TextBox::displayLineNumbers(bool isDispayed){
-    this->isLineNumbersDisplayed = isDispayed;
+    if(this->lineNumbersText != nullptr)
+        this->lineNumbersText->activate(isDispayed);
     this->updateLineNumbers();
+}
+
+bool
+TextBox::isLineNumbersDisplayed() const{
+    return this->lineNumbersText != nullptr && this->lineNumbersText->isActive();
+}
+
+void
+TextBox::displayScrollBar(bool isDispayed){
+    if(this->scrollBar != nullptr)
+        this->scrollBar->activate(isDispayed);
+    this->updateScrollBar();
+}
+
+bool
+TextBox::isScrollBarDisplayed() const{
+    return this->scrollBar != nullptr && this->scrollBar->isActive();
 }
 
 void TextBox::insertAtCursor(const char *text){
@@ -427,6 +474,8 @@ void TextBox::insertAtCursor(const char *text){
     if(pWeight == this->text->weight - iWeight){
         cursorWalkRight(iWeight);
     }
+
+    this->countNumberOfLines();
 }
 
 
@@ -454,6 +503,8 @@ void TextBox::insertAtCursor(const char *text, const uint8_t flags){
     if(pWeight == this->text->weight - iWeight){
         cursorWalkRight(iWeight);
     }
+
+    this->countNumberOfLines();
 }
 
 void TextBox::insertLineAtCursor(const char *text){
@@ -479,7 +530,9 @@ void TextBox::insertLineAtCursor(const char *text){
     size_t iWeight = ustrlen(text);
     if(pWeight == this->text->weight - iWeight){
         cursorWalkRight(iWeight);
-    }
+    }  
+
+    this->countNumberOfLines();
 }
 
 void TextBox::insertLineAtCursor(const char *text, const uint8_t flags){
@@ -506,6 +559,8 @@ void TextBox::insertLineAtCursor(const char *text, const uint8_t flags){
     if(pWeight == this->text->weight - iWeight){
         cursorWalkRight(iWeight);
     }
+
+    this->countNumberOfLines();
 }
 
 void TextBox::insertFlagAtRange(size_t index, size_t length, uint8_t flags){
@@ -518,6 +573,8 @@ void TextBox::insertFlagAtRange(size_t index, size_t length, uint8_t flags){
     if(flags & FLAG_NEW_LINE){
         this->repositionCursor();
     }
+
+    this->countNumberOfLines();
 }
 
 void TextBox::deleteAtCursor(){
@@ -535,6 +592,8 @@ void TextBox::deleteAtCursor(){
         this->cursor.index = this->text->weight;//put at end
         this->repositionCursor();
     }
+
+    this->countNumberOfLines();
 }
 
 /*
@@ -550,7 +609,9 @@ void TextBox::deleteAtRange(size_t startIndex, size_t endIndex){
         this->cursor.index = this->text->weight;//put at end
         this->repositionCursor();
     }
-    //NOTE: can frameCursor also go out of scope ?
+    //NOTE: can frameCursor also go out of scope ? TODO
+
+    this->countNumberOfLines();
 }
 
 void TextBox::backspaceAtCursor(){
@@ -577,6 +638,8 @@ void TextBox::backspaceAtCursor(){
         rope_delete_at(this->text.get(), this->cursor.index-2, 1);
         cursorWalkLeft(1);
     }
+
+    this->countNumberOfLines();
 }
 
 void TextBox::cursorWalkLeft(uint16_t diff){
@@ -802,6 +865,23 @@ TextBox::clear(){
     this->cursor.index = 0;
     this->cursor.x = 0;
     this->cursor.y = 0;
+}
+
+
+
+void//PERFORMANCE ?
+TextBox::countNumberOfLines(){
+    if(this->text->weight == 0)
+        return;
+
+    uint16_t lines = 0;
+    size_t currentIndex = 0;
+    while(currentIndex <= this->text->weight - 1){
+        size_t weightUntilPreviousNewLine = weight_until_next_new_line(this->text.get(), currentIndex);
+        currentIndex += weightUntilPreviousNewLine;
+        lines++;
+    }
+    this->numberOfLines = lines;
 }
 
 

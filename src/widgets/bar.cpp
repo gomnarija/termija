@@ -56,10 +56,6 @@ Bar::getHeight(){
     return this->heightPx;
 }
 
-bool
-Bar::getIsActive(){
-    return this->isActive;
-}
 
 void
 Bar::resize(uint16_t width, uint16_t height){

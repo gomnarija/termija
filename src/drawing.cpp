@@ -358,7 +358,7 @@ void _DrawInvertedTextEx(Font font, const char *text, Vector2 position, float fo
     float scaleFactor = fontSize/font.baseSize;         // Character quad scaling factor
     size_t rSize = TextLength(text);
     EndTextureMode();//end parent's textureMode before starting childs...
-    RenderTexture2D renderTexture = LoadRenderTexture(tra_get_screen_width(), fontSize+spacing);
+    RenderTexture2D renderTexture = LoadRenderTexture(tra_get_screen_width(), fontSize);// REMOVED fontSize + spacing
     BeginTextureMode(renderTexture);
     ClearBackground(tint);
     for (int i = 0, j=0; j < size && i < rSize;)

@@ -14,7 +14,7 @@ Text::Text(const uint16_t x,const uint16_t y, const char *text):
 Text::Text(const uint16_t x,const uint16_t y, const char *text, const uint8_t flags):
 textWidth{0},
 textHeight{0},
-isActive{true}
+_isActive{true}
 {
     if(text == nullptr){
         PLOG_ERROR << "given text is NULL, aborted.";
@@ -34,7 +34,7 @@ void Text::draw(const uint16_t startX,const uint16_t startY,const uint16_t textW
         return;
     }else if(this->text->weight == 0){
         return;
-    }else if(!isActive){
+    }else if(!_isActive){
         return;
     }
     // else if(this->x >= textWidth ||
@@ -183,7 +183,13 @@ void Text::underline(){
 
 void
 Text::activate(bool isActive){
-    this->isActive = isActive;
+    this->_isActive = isActive;
+}
+
+
+bool
+Text::isActive() const{
+    return this->_isActive;
 }
 
 }

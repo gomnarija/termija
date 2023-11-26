@@ -27,9 +27,10 @@ PopUp::PopUp(const uint16_t x,const uint16_t y, const uint16_t width, const uint
         uint16_t maxTitleLength = width / tra_get_font_width();
         this->titleText = std::make_unique<termija::Text>(x, y, title, FLAG_INVERT);
         this->titleText->setTextWidth(maxTitleLength);this->titleText->setTextHeight(1);
-        uint16_t titleTextLengthPx = this->titleText->getTextWidth() * tra_get_font_width();
-        if(titleTextLengthPx < width)
-            this->titleBar = std::make_unique<termija::Bar>(x + titleTextLengthPx, y, width - titleTextLengthPx, tra_get_font_height());
+        uint16_t titleLengthPx = ustrlen(title) * tra_get_font_width();
+        if(titleLengthPx < width){
+               this->titleBar = std::make_unique<termija::Bar>(x + titleLengthPx, y, width - titleLengthPx, tra_get_font_height());
+        }
     }else{
         this->titleBar =    std::make_unique<termija::Bar>(x, y, width, tra_get_font_height());
     }

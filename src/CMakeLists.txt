@@ -16,13 +16,14 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
 endif()
 
 
-#
+#source files
 set(SOURCE_FILES 
 ${SOURCE_DIR}/termija.cpp                 
 ${SOURCE_DIR}/pane.cpp              
 ${SOURCE_DIR}/drawing.cpp                  
 ${SOURCE_DIR}/rope.cpp
 ${SOURCE_DIR}/config.cpp
+${SOURCE_DIR}/widgets/scrollbar.cpp
 ${SOURCE_DIR}/widgets/popup.cpp
 ${SOURCE_DIR}/widgets/box.cpp
 ${SOURCE_DIR}/widgets/bar.cpp
@@ -31,6 +32,7 @@ ${SOURCE_DIR}/widgets/text.cpp
 ${SOURCE_DIR}/widgets/textbox.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} PARENT_SCOPE)
 
+#header files
 set(HEADER_FILES
 ${SOURCE_DIR}/termija.h
 ${SOURCE_DIR}/widget.h

@@ -1058,6 +1058,46 @@ TEST_CASE( "Rebalanced rope", "[rope_rebalance]" ) {
 
         REQUIRE( new_rope == nullptr );
     }
+
+    SECTION("BUG : _harvesting right child leaf before left side (FIXED)"){
+        const std::string text = "some_text_listajstip    naziv***    ****d      dokumentad      momo";
+        size_t size = text.size();
+        std::unique_ptr<RopeNode> rope = rope_create("some_text");
+
+        //append small weight nodes
+        rope_append(rope.get(), "_l");
+        rope_append(rope.get(), "i");
+        rope_append(rope.get(), "s");
+        rope_append(rope.get(), "t");
+        rope_append(rope.get(), "a");
+        rope_append(rope.get(), "j");
+        rope_append(rope.get(), rope_create("s", FLAG_NEW_LINE));
+        std::unique_ptr<RopeNode> new_rope = rope_rebalance(std::move(rope)); 
+        rope_append(new_rope.get(), rope_create("tip    naziv", FLAG_NEW_LINE));
+        new_rope = rope_rebalance(std::move(new_rope)); 
+        rope_append(new_rope.get(), rope_create("***    ****", FLAG_NEW_LINE));
+        new_rope = rope_rebalance(std::move(new_rope)); 
+        rope_append(new_rope.get(), rope_create("d      dokumenta", FLAG_NEW_LINE));
+        new_rope = rope_rebalance(std::move(new_rope)); 
+        rope_append(new_rope.get(), rope_create("d      momo", FLAG_NEW_LINE));
+        new_rope = rope_rebalance(std::move(new_rope)); 
+    
+
+        REQUIRE( rope == nullptr );
+        REQUIRE( new_rope->weight == size );
+        REQUIRE( rope_is_balanced(*(new_rope->left)) );
+
+        std::string rope_text;
+        RopeLeafIterator litrope(new_rope.get());
+        RopeNode *c;
+
+        while((c = litrope.pop()) != nullptr){
+            REQUIRE( c->text != nullptr );
+            rope_text += c->text.get();
+        }
+        REQUIRE( rope_text == text );
+
+    }
 }
 
 TEST_CASE( "Rope splited at index", "[rope_split_at]" ) {

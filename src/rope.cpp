@@ -710,18 +710,16 @@ void _harvest(std::unique_ptr<RopeNode> rope, std::vector<std::unique_ptr<RopeNo
         (*nodeVector).push_back(std::move(rope));
         return;
     }
-    //if children are leaves, collect them
+
+    //first get left, then right side
+
+    //if left child is a leaf, collect it
     if(rope->left != nullptr &&
         rope->left->left == nullptr && rope->left->right == nullptr){
         (*nodeVector).push_back(std::move(rope->left));
-    }
-    if(rope->right != nullptr &&
-        rope->right->left == nullptr && rope->right->right == nullptr){
-        (*nodeVector).push_back(std::move(rope->right)); 
-    }
-    std::stack<RopeNode*> nodeStack;
-    //get left-most; collect parent->left
-    if(rope->left != nullptr){
+    }else if(rope->left != nullptr){//if it's not a leaf
+        std::stack<RopeNode*> nodeStack;
+        //get left-most; collect parent->left
         RopeNode *lm = rope_left_most_node_trace(*rope, &nodeStack);
         RopeNode *p = nodeStack.top();
         nodeVector->push_back(std::move(p->left));
@@ -733,9 +731,16 @@ void _harvest(std::unique_ptr<RopeNode> rope, std::vector<std::unique_ptr<RopeNo
         
             nodeStack.pop();
         }
-    }else if(rope->right != nullptr){
+    }
+    //if right child is a leaf, collect it 
+    if(rope->right != nullptr &&
+        rope->right->left == nullptr && rope->right->right == nullptr){
+        (*nodeVector).push_back(std::move(rope->right)); 
+    }else if(rope->right != nullptr){//if it's not a leaf
          _harvest(std::move(rope->right), nodeVector);
     }
+
+    
     //destroy old rope
     rope_destroy(std::move(rope));
 }
